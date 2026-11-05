@@ -45,18 +45,14 @@ def formatar_itens_pedido(carrinho: list[dict], centro_distribuicao: str) -> lis
 
 
 def calcular_resumo_cotacao(cotacao: dict) -> dict:
-    """Deriva subtotal bruto e desconto total a partir dos itens de `cotar`
-    (o servidor devolve só preço líquido por item e o total geral)."""
-    subtotal_bruto = 0.0
-    for item in cotacao.get("itens", []):
-        preco_unitario = float(item.get("preco_unitario", 0))
-        percentual = float(item.get("percentual_desconto_aplicado", 0))
-        quantidade = int(item.get("quantidade", 0))
-        if percentual < 100:
-            preco_cheio = preco_unitario / (1 - percentual / 100) if percentual else preco_unitario
-        else:
-            preco_cheio = preco_unitario
-        subtotal_bruto += preco_cheio * quantidade
+    """Deriva subtotal bruto e desconto total a partir dos itens de `cotar`.
+    O servidor devolve em `preco_unitario` o preço vigente ANTES do desconto
+    por volume e em `total` o valor já com desconto; o bruto é, portanto,
+    `preco_unitario * quantidade`."""
+    subtotal_bruto = sum(
+        float(item.get("preco_unitario", 0)) * int(item.get("quantidade", 0))
+        for item in cotacao.get("itens", [])
+    )
     total = float(cotacao.get("total", 0))
     return {
         "subtotal_bruto": subtotal_bruto,
@@ -71,6 +67,54 @@ def calcular_total_pedido(pedido: dict) -> float:
         float(item.get("preco_unitario", 0)) * int(item.get("quantidade", 0))
         for item in pedido.get("itens", [])
     )
+
+
+def necessidade_por_produto(carrinho: list[dict]) -> dict[int, int]:
+    """Soma a quantidade por produto (o mesmo produto pode entrar na cesta mais de uma vez)."""
+    total: dict[int, int] = {}
+    for item in carrinho:
+        pid = int(item["produto_id"])
+        total[pid] = total.get(pid, 0) + int(item["quantidade"])
+    return total
+
+
+def centros_que_atendem(carrinho: list[dict], saldos: dict[int, dict[str, int]]) -> list[str]:
+    """CDs com saldo suficiente para TODOS os itens da cesta. `saldos` é
+    `{produto_id: {centro: quantidade}}`. Como o pedido usa um único CD
+    (# MVP, ver `formatar_itens_pedido`), só esses CDs servem."""
+    comuns: set[str] | None = None
+    for pid, quantidade in necessidade_por_produto(carrinho).items():
+        ok = {cd for cd, saldo in saldos.get(pid, {}).items() if saldo >= quantidade}
+        comuns = ok if comuns is None else comuns & ok
+    return sorted(comuns or [])
+
+
+def linhas_carrinho(carrinho: list[dict], nomes: dict[int, str]) -> list[dict]:
+    """Linhas legíveis da cesta (ID, nome e quantidade) para exibição."""
+    return [
+        {
+            "ID": int(item["produto_id"]),
+            "Produto": nomes.get(int(item["produto_id"]), f"Produto {item['produto_id']}"),
+            "Quantidade": int(item["quantidade"]),
+        }
+        for item in carrinho
+    ]
+
+
+def linhas_pedido(pedido: dict, nomes: dict[int, str]) -> list[dict]:
+    """Itens da reserva devolvida por `reservar_pedido`, com subtotal por linha."""
+    return [
+        {
+            "Produto": nomes.get(int(item["produto_id"]), f"Produto {item['produto_id']}"),
+            "Quantidade": int(item["quantidade"]),
+            "CD": item.get("centro_distribuicao", ""),
+            "Preço unitário": formatar_moeda(item.get("preco_unitario")),
+            "Subtotal": formatar_moeda(
+                float(item.get("preco_unitario", 0)) * int(item.get("quantidade", 0))
+            ),
+        }
+        for item in pedido.get("itens", [])
+    ]
 
 
 def run_async(coro):
@@ -280,7 +324,7 @@ def _render_tab_cotar(client: B2BMCPClient, modo_dev: bool):
         return
 
     st.markdown("##### Itens na Cesta de Cotação:")
-    st.table(st.session_state.carrinho)
+    st.table(linhas_carrinho(st.session_state.carrinho, _nomes(_infos_da_cesta(client))))
     if st.button("Limpar Cesta"):
         st.session_state.carrinho = []
         st.rerun()
@@ -347,23 +391,135 @@ def _render_tab_compatibilidade(client: B2BMCPClient, modo_dev: bool):
 # --------------------------
 # TAB 5: FECHAR PEDIDO
 # --------------------------
-def _emitir_pedido(client: B2BMCPClient, centro_distribuicao: str, modo_dev: bool):
+def _info_produto(client: B2BMCPClient, produto_id: int) -> dict:
+    """Nome e saldo por CD de um produto, em cache na sessão (limpo após cada pedido).
+    Falha de leitura devolve só um nome genérico, sem cachear."""
+    cache = st.session_state.setdefault("produtos_info", {})
+    if produto_id in cache:
+        return cache[produto_id]
+    try:
+        detalhe = run_async(client.obter_produto_detalhe(produto_id))
+        estoque = run_async(client.obter_estoque(produto_id))
+    except Exception:
+        return {"nome": f"Produto {produto_id}", "centros": {}}
+    cache[produto_id] = {
+        "nome": detalhe.get("nome", f"Produto {produto_id}"),
+        "centros": {
+            c["centro_distribuicao"]: int(c["quantidade"]) for c in estoque.get("centros", [])
+        },
+    }
+    return cache[produto_id]
+
+
+def _infos_da_cesta(client: B2BMCPClient) -> dict[int, dict]:
+    ids = necessidade_por_produto(st.session_state.carrinho)
+    return {pid: _info_produto(client, pid) for pid in ids}
+
+
+def _nomes(infos: dict[int, dict]) -> dict[int, str]:
+    return {pid: info["nome"] for pid, info in infos.items()}
+
+
+def _previa_valor(client: B2BMCPClient) -> dict | None:
+    """Cotação da cesta atual (cache por conteúdo da cesta): o valor antes de confirmar."""
+    chave = tuple((int(i["produto_id"]), int(i["quantidade"])) for i in st.session_state.carrinho)
+    cache = st.session_state.get("previa_cotacao")
+    if cache and cache["chave"] == chave:
+        return cache["cotacao"]
+    try:
+        cotacao = run_async(client.cotar(formatar_itens_carrinho(st.session_state.carrinho)))
+    except Exception as exc:
+        st.warning(f"Não foi possível calcular a prévia de valor: {exc}")
+        return None
+    st.session_state["previa_cotacao"] = {"chave": chave, "cotacao": cotacao}
+    return cotacao
+
+
+def _render_previa(client: B2BMCPClient, infos: dict[int, dict]):
+    st.markdown("##### Itens que serão reservados:")
+    st.table(linhas_carrinho(st.session_state.carrinho, _nomes(infos)))
+    cotacao = _previa_valor(client)
+    if cotacao is None:
+        return
+    resumo = calcular_resumo_cotacao(cotacao)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Subtotal bruto", formatar_moeda(resumo["subtotal_bruto"]))
+    col2.metric("Desconto por volume", formatar_moeda(resumo["desconto_total"]))
+    col3.metric("Valor estimado da reserva", formatar_moeda(resumo["total"]))
+
+
+def _escolher_cd(infos: dict[int, dict]) -> str:
+    """CD da reserva: só os que têm saldo para toda a cesta; sem dados de estoque, texto livre."""
+    saldos = {pid: info["centros"] for pid, info in infos.items()}
+    if not any(saldos.values()):
+        return st.text_input("Centro de Distribuição para Reserva:", value="SP", key="pedido_cd")
+    centros = centros_que_atendem(st.session_state.carrinho, saldos)
+    if not centros:
+        st.error(
+            "Nenhum centro de distribuição tem saldo para todos os itens da cesta. "
+            "Reduza as quantidades ou remova itens (o pedido usa um único CD)."
+        )
+        return ""
+    return st.selectbox(
+        "Centro de Distribuição para Reserva:",
+        centros,
+        key="pedido_cd_sel",
+        help="Só aparecem CDs com saldo para todos os itens. Aplicado a todos os itens da cesta.",
+    )
+
+
+def _emitir_pedido(client: B2BMCPClient, centro_distribuicao: str, infos: dict[int, dict]):
     with st.spinner("Processando pedido e reserva no servidor MCP..."):
         try:
             itens_envio = formatar_itens_pedido(st.session_state.carrinho, centro_distribuicao)
-            resultado_pedido = run_async(client.reservar_pedido(itens_envio))
-            st.balloons()
-            st.session_state["ultimo_pedido_id"] = resultado_pedido.get("id")
-            st.success("🎉 **Pedido B2B Criado com Sucesso!**")
-            st.write(f"**Número do Pedido:** `{resultado_pedido.get('id', 'N/A')}`")
-            st.write(f"**Status:** `{resultado_pedido.get('status', 'reservado')}`")
-            st.write(
-                f"**Total Faturado:** {formatar_moeda(calcular_total_pedido(resultado_pedido))}"
-            )
-            if modo_dev:
-                st.json(resultado_pedido)
+            resultado = run_async(client.reservar_pedido(itens_envio))
         except Exception as exc:
             st.error(f"Falha ao reservar pedido: {exc}")
+            return
+    cotacao = (st.session_state.get("previa_cotacao") or {}).get("cotacao") or {}
+    st.session_state["ultimo_pedido_id"] = resultado.get("id")
+    st.session_state["pedido_emitido"] = {
+        "pedido": resultado,
+        "nomes": _nomes(infos),
+        "total_cotacao": float(cotacao["total"]) if "total" in cotacao else None,
+    }
+    st.session_state.carrinho = []
+    st.session_state.pop("previa_cotacao", None)
+    st.session_state.pop("produtos_info", None)
+    st.session_state["pedido_confirma_n"] = st.session_state.get("pedido_confirma_n", 0) + 1
+    st.rerun()
+
+
+def _render_pedido_emitido(modo_dev: bool):
+    emitido = st.session_state.get("pedido_emitido")
+    if not emitido:
+        return
+    pedido = emitido["pedido"]
+    total = calcular_total_pedido(pedido)
+    st.success("🎉 **Reserva criada com sucesso!** O estoque foi separado; falta o pagamento.")
+    st.write("**Número do Pedido (copie para a aba de conversão):**")
+    st.code(str(pedido.get("id", "N/A")), language=None)
+    st.write(
+        f"**Status:** `{pedido.get('status', 'reservado')}` (aguardando pagamento) · "
+        f"**Criado em:** {pedido.get('criado_em', '—')}"
+    )
+    st.table(linhas_pedido(pedido, emitido["nomes"]))
+    st.metric("Valor a pagar", formatar_moeda(total))
+    cotado = emitido["total_cotacao"]
+    if cotado is not None and abs(total - cotado) > 0.005:
+        st.warning(
+            f"A cotação indicava {formatar_moeda(cotado)} (com desconto por volume), "
+            f"mas a reserva foi gravada em {formatar_moeda(total)}."
+        )
+    st.info(
+        "**Próximo passo:** pague o valor acima e envie o comprovante na aba "
+        "**🧾 Converter Reserva / Comprovante** (o número do pedido já vem preenchido)."
+    )
+    if modo_dev:
+        st.json(pedido)
+    if st.button("Fazer novo pedido"):
+        st.session_state.pop("pedido_emitido", None)
+        st.rerun()
 
 
 def _render_tab_pedido(client: B2BMCPClient, modo_dev: bool):
@@ -372,26 +528,22 @@ def _render_tab_pedido(client: B2BMCPClient, modo_dev: bool):
         "Atenção: A chamada a esta ferramenta reserva e baixa o estoque "
         "real dos produtos no sistema."
     )
+    _render_pedido_emitido(modo_dev)
 
-    centro_distribuicao = st.text_input(
-        "Centro de Distribuição para Reserva:",
-        value="SP",
-        key="pedido_cd",
-        help="Aplicado a todos os itens da cesta (ver limitação no README).",
+    if not st.session_state.carrinho:
+        st.info("Cesta vazia. Adicione itens na aba **Cotação de Preços** para fechar um pedido.")
+        return
+
+    infos = _infos_da_cesta(client)
+    _render_previa(client, infos)
+    centro_distribuicao = _escolher_cd(infos)
+    confirma = st.checkbox(
+        "Confirmo que desejo efetivar a reserva de estoque e emitir o pedido oficial.",
+        key=f"pedido_confirma_{st.session_state.get('pedido_confirma_n', 0)}",
     )
-
-    confirma_pedido = st.checkbox(
-        "Confirmo que desejo efetivar a reserva de estoque e emitir o pedido oficial."
-    )
-
-    if st.button("🛒 Emitir Pedido B2B", type="primary", disabled=not confirma_pedido):
-        if not st.session_state.carrinho:
-            st.error(
-                "Cesta de produtos está vazia. Adicione itens na aba Cotação "
-                "antes de fechar o pedido."
-            )
-        else:
-            _emitir_pedido(client, centro_distribuicao, modo_dev)
+    pode_emitir = confirma and bool(centro_distribuicao)
+    if st.button("🛒 Emitir Pedido B2B", type="primary", disabled=not pode_emitir):
+        _emitir_pedido(client, centro_distribuicao, infos)
 
 
 # --------------------------

@@ -622,6 +622,17 @@ def _verificar_disponibilidade(
             )
 
 
+def _preco_unitario_com_desconto(produto: Produto, quantidade: int) -> Decimal:
+    """Preço unitário da reserva: o vigente com a maior faixa de desconto por
+    volume atingida por ESTE item (mesma regra de `calcular_item_cotacao`, para
+    o total da reserva bater com o da cotação). Guardado com 4 casas.
+
+    # MVP: a faixa considera a quantidade da linha, não a soma do mesmo produto
+    # em linhas separadas, igual à cotação."""
+    preco_base, percentual, _ = calcular_item_cotacao(produto, quantidade)
+    return (preco_base * (Decimal("1") - percentual / Decimal("100"))).quantize(Decimal("0.0001"))
+
+
 async def criar_pedido(
     session: AsyncSession,
     itens: list[tuple[int, int, str]],
@@ -632,6 +643,9 @@ async def criar_pedido(
     """Cria um pedido/reserva com os itens informados
     (`[(produto_id, quantidade, centro_distribuicao), ...]`) e decrementa o
     estoque de cada um.
+
+    O preço gravado em cada item já traz o desconto por volume (ver
+    `_preco_unitario_com_desconto`): é o valor que o comprovante deve cobrir.
 
     Valida a disponibilidade de TODOS os itens antes de gravar qualquer
     coisa (inclusive antes de decrementar o primeiro item) — decisão de
@@ -661,7 +675,7 @@ async def criar_pedido(
     pedido = Pedido(user_email=user_email, conversation_id=conversation_id)
     session.add(pedido)
     for produto_id, quantidade, centro_distribuicao in itens:
-        preco_unitario = preco_vigente(produtos[produto_id])
+        preco_unitario = _preco_unitario_com_desconto(produtos[produto_id], quantidade)
         session.add(
             PedidoItem(
                 pedido=pedido,

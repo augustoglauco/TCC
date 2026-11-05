@@ -74,6 +74,7 @@ Gera uma cotação com o desconto por volume aplicado automaticamente.
 Cria uma reserva e baixa o estoque do centro de distribuição indicado.
 * **Argumentos:** `itens` *(array de `{"produto_id": int, "quantidade": int, "centro_distribuicao": string}`)*.
 * **Retorno:** `id` do pedido, `status` (`reservado`), `criado_em` e os itens reservados.
+* O `preco_unitario` de cada item é o preço **já com o desconto por volume** da faixa atingida (mesma regra de `cotar`), com até 4 casas decimais (ex.: `"123.4050"`). O valor a pagar é a soma de `preco_unitario × quantidade`, e é contra ele que o comprovante é validado.
 * Quantidade acima do estoque do centro é recusada.
 
 #### 5. `converter_reserva_venda`
@@ -243,8 +244,8 @@ Roteiro para o cliente validar a integração sem escrever código, usando o **P
 ### 7.8 Teste 7 — Reserva de pedido (aba 🛒 Fechar Pedido) — altera estoque
 
 1. Na aba de cotação, monte uma cesta pequena (1 item, quantidade 1 ou 2) de um produto **com saldo** no CD anotado.
-2. Na aba **Fechar Pedido**, informe o **CD** (nome exato do Teste 3), marque a caixa de confirmação e clique em **🛒 Emitir Pedido B2B**.
-3. Esperado: 🎉 *Pedido B2B Criado com Sucesso*, com `id` (UUID), `status: reservado` e os itens. **Copie o `id`.**
+2. Na aba **Fechar Pedido**, confira a lista de itens e a prévia de valor (o *Valor estimado da reserva* é o total da cotação, já com o desconto por volume), escolha o **CD** na lista (só aparecem CDs com saldo para toda a cesta), marque a caixa de confirmação e clique em **🛒 Emitir Pedido B2B**.
+3. Esperado: 🎉 *Reserva criada com sucesso*, com o `id` (UUID, copiável), `status: reservado`, data, a tabela de itens (CD, preço unitário, subtotal) e o *Valor a pagar*. A cesta é esvaziada. **Copie o `id`.**
 4. Volte ao Teste 3 e consulte o estoque do produto: o saldo do CD deve ter **diminuído** na quantidade reservada.
 5. Tente reservar uma quantidade **maior que o saldo**. Esperado: pedido recusado, sem alterar o estoque.
 6. Com a cesta vazia, tente emitir. Esperado: aviso de cesta vazia.
@@ -256,7 +257,7 @@ Roteiro para o cliente validar a integração sem escrever código, usando o **P
 O campo *ID do Pedido* já vem preenchido com a última reserva criada.
 
 1. **Comprovante divergente:** escolha *Texto / Linha Digitável / PIX*, escreva um valor errado (ex.: `PIX de R$ 1,00 para Empresa`) e clique em **Enviar Comprovante & Converter em Venda**. Esperado: mensagem de *Divergência ou comprovante inválido* (ou conversão registrada como divergente, conforme o parecer); o pedido **não** vira venda concluída.
-2. **Comprovante correto:** envie um comprovante (arquivo PDF/PNG/JPG, ou texto) com o **valor exato** do pedido (o total da cotação do Teste 7). Esperado: 🎉 mensagem de sucesso, *Status Atual* `venda_concluida` e o *Parecer Financeiro da IA*.
+2. **Comprovante correto:** envie um comprovante (arquivo PDF/PNG/JPG, ou texto) com o **valor exato** do pedido (o *Valor a pagar* do Teste 7). Esperado: 🎉 mensagem de sucesso, *Status Atual* `venda_concluida` e o *Parecer Financeiro da IA*.
 3. **Pedido inexistente:** informe um UUID qualquer. Esperado: `Pedido '...' não encontrado.`
 
 ### 7.10 Folha de resultado

@@ -1000,6 +1000,17 @@ MCP B2B.** `@server.tool(...)` em `app.mcp_server.b2b` (hoje 5):
    momento); cria o pedido `"reservado"` e decrementa `produto_estoque` por
    upsert; quantidade indisponível falha (nunca abaixo de zero). `# MVP:` sem
    lock (corrida pode sobre-reservar), sem auditoria, sem pagamento real.
+   **Preço da reserva = preço da cotação (2026-11-05):** `criar_pedido` grava
+   em `pedido_itens.preco_unitario` o preço vigente já com a maior faixa de
+   desconto por volume atingida (`_preco_unitario_com_desconto`, mesma regra de
+   `calcular_item_cotacao`). Antes gravava o preço cheio, então `cotar` mostrava
+   R$ 900 e a reserva cobrava R$ 1.000; o parceiro que pagava o cotado caía em
+   `pagamento_divergente`. A coluna passou a `Numeric(12, 4)` (migração `0032`):
+   o preço com desconto (ex.: 129,90 × 0,95 = 123,405) não cabe em 2 casas, e
+   arredondar por unidade faria o total divergir do subtotal da cotação. Vale
+   para todos os chamadores de `criar_pedido` (MCP B2B e pedidos do site).
+   `# MVP:` a faixa vale por linha do pedido, não pela soma do mesmo produto em
+   linhas separadas (igual à cotação); pedidos antigos mantêm o preço gravado.
 
 A migração `0009` cria as tabelas e semeia 2–3 pares de compatibilidade.
 

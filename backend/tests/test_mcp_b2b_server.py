@@ -611,7 +611,7 @@ async def test_reservar_pedido_decrementa_estoque_e_devolve_o_pedido(factory, qd
     [item] = saida["itens"]
     assert item["produto_id"] == produto_id
     assert item["quantidade"] == 3
-    assert item["preco_unitario"] == "100.00"
+    assert item["preco_unitario"] == "100.0000"
 
     async with factory() as session:
         estoques = await listar_estoque(session, produto_id)

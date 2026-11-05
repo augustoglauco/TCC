@@ -313,8 +313,8 @@ class Pedido(Base):
 
 class PedidoItem(Base):
     """Item de um pedido/reserva — produto, quantidade e o preço unitário
-    vigente no momento da reserva (não recalculado depois, mesmo que o
-    preço do produto mude)."""
+    vigente no momento da reserva, já com o desconto por volume da faixa
+    atingida (não recalculado depois, mesmo que o preço do produto mude)."""
 
     __tablename__ = "pedido_itens"
 
@@ -323,7 +323,8 @@ class PedidoItem(Base):
     produto_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"), index=True)
     centro_distribuicao: Mapped[str]
     quantidade: Mapped[int]
-    preco_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    # 4 casas: preço com desconto por volume (ex.: 123,405) não cabe em 2.
+    preco_unitario: Mapped[Decimal] = mapped_column(Numeric(12, 4))
 
     pedido: Mapped[Pedido] = relationship(back_populates="itens")
 

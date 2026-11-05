@@ -351,6 +351,46 @@ async def test_criar_pedido_decrementa_estoque_e_grava_preco_unitario(db_session
     assert estoques[0].quantidade == 7
 
 
+async def test_criar_pedido_aplica_desconto_por_volume_igual_a_cotacao(db_session):
+    produto = await _cria_produto(db_session, preco=Decimal("129.90"))
+    await atualizar_estoque(db_session, produto.id, "CD-SP", 50)
+    await adicionar_desconto_volume(db_session, produto.id, 5, Decimal("5.00"))
+    await adicionar_desconto_volume(db_session, produto.id, 10, Decimal("10.00"))
+
+    # o produto na identity map traz descontos_volume antigos
+    await db_session.refresh(produto, attribute_names=["descontos_volume"])
+    pedido = await criar_pedido(db_session, [(produto.id, 10, "CD-SP")])
+
+    [item] = pedido.itens
+    assert item.preco_unitario == Decimal("116.9100")
+    _, _, subtotal = calcular_item_cotacao(produto, 10)
+    assert abs(item.preco_unitario * item.quantidade - subtotal) <= Decimal("0.01")
+
+
+async def test_criar_pedido_preco_com_desconto_mantem_4_casas(db_session):
+    produto = await _cria_produto(db_session, preco=Decimal("129.90"))
+    await atualizar_estoque(db_session, produto.id, "CD-SP", 50)
+    await adicionar_desconto_volume(db_session, produto.id, 5, Decimal("5.00"))
+
+    # o produto na identity map traz descontos_volume antigos
+    await db_session.refresh(produto, attribute_names=["descontos_volume"])
+    pedido = await criar_pedido(db_session, [(produto.id, 6, "CD-SP")])
+
+    assert pedido.itens[0].preco_unitario == Decimal("123.4050")
+
+
+async def test_criar_pedido_abaixo_da_faixa_nao_tem_desconto(db_session):
+    produto = await _cria_produto(db_session, preco=Decimal("129.90"))
+    await atualizar_estoque(db_session, produto.id, "CD-SP", 50)
+    await adicionar_desconto_volume(db_session, produto.id, 5, Decimal("5.00"))
+
+    # o produto na identity map traz descontos_volume antigos
+    await db_session.refresh(produto, attribute_names=["descontos_volume"])
+    pedido = await criar_pedido(db_session, [(produto.id, 4, "CD-SP")])
+
+    assert pedido.itens[0].preco_unitario == Decimal("129.9000")
+
+
 async def test_criar_pedido_com_estoque_insuficiente_nao_grava_nada(db_session):
     produto = await _cria_produto(db_session)
     await atualizar_estoque(db_session, produto.id, "CD-SP", 2)
