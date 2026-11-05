@@ -70,7 +70,7 @@ describe("AdminUsuariosPage", () => {
         screen.getByRole("heading", { name: "Gerenciamento de Usuários" }),
       ).toBeInTheDocument();
       expect(screen.getByText("Ana Recorrente")).toBeInTheDocument();
-      expect(screen.getByText("ana.recorrente@example.com")).toBeInTheDocument();
+      expect(screen.getByTitle("ana.recorrente@example.com")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /\+ Novo Usuário \/ Admin/i })).toBeInTheDocument();
 
       const verPedidosLinks = screen.getAllByRole("link", { name: /Ver Pedidos/i });

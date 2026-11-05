@@ -239,7 +239,6 @@ export default function AdminUsuariosPage() {
               <tr>
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Nome do Usuário</th>
-                <th className="px-4 py-3">E-mail</th>
                 <th className="px-4 py-3">Perfil Comercial</th>
                 <th className="px-4 py-3">Origem / Motivo</th>
                 <th className="px-4 py-3">Chave B2B (MCP)</th>
@@ -252,8 +251,11 @@ export default function AdminUsuariosPage() {
                 return (
                   <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-4 py-3.5 font-mono text-slate-400">#{u.id}</td>
-                    <td className="px-4 py-3.5 font-bold text-slate-900">{u.nome}</td>
-                    <td className="px-4 py-3.5 font-mono text-slate-600">{u.email}</td>
+                    <td className="px-4 py-3.5 font-bold text-slate-900">
+                      <span title={u.email} className="cursor-help">
+                        {u.nome}
+                      </span>
+                    </td>
                     <td className="px-4 py-3.5">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
