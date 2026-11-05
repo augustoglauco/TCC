@@ -1,6 +1,7 @@
 # Assistente Virtual Multimodal com Roteador Inteligente e Arquitetura Dual MCP
 
 #### Aluno: [Augusto Quintino](https://github.com/augustoglauco)
+
 #### Orientadora: Profª. Manoela Kohler ([prof.manoela@ica.ele.puc-rio.br](mailto:prof.manoela@ica.ele.puc-rio.br))
 
 ---
@@ -26,6 +27,7 @@ This project presents a **Multimodal Virtual Assistant** developed as a Capstone
 A automação de atendimento ao cliente em ambientes corporativos exige equilibrar a privacidade de dados e custos operacionais com respostas precisas e integração a sistemas legados. Modelos de linguagem baseados exclusivamente em nuvem impõem altos custos recorrentes e riscos de privacidade, enquanto soluções puramente locais podem falhar em tarefas de alta complexidade ou integração transacional.
 
 Este trabalho aborda esse desafio propondo uma arquitetura agêntica que prioriza o processamento local em GPU de 16GB (NVIDIA RTX 4080 / A4000) servida por Ollama, combinada com:
+
 1. **Entrada Multimodal Nativa**: Capacidade de receber texto, mensagens de áudio gravadas pelo cliente e imagens (comprovantes para leitura OCR ou fotos de produtos para busca visual no catálogo).
 2. **RAG Multimodal Híbrido**: Recuperação vetorial e relacional sobre PDFs, manuais técnicos, FAQ e banco de imagens.
 3. **Roteador Inteligente de Intenção**: Orquestrador responsável por classificar o domínio e direcionar a execução para a ferramenta adequada.
@@ -58,7 +60,8 @@ Entrada Multimodal (Texto / Áudio / Imagem)
 ```
 
 #### Componentes da Modelagem:
-* **Pré-processamento Multimodal**: 
+
+* **Pré-processamento Multimodal**:
   - *Áudio*: Processado via Whisper via `faster-whisper` (modelo `small`, configurável em `STT_MODEL_SIZE`) para conversão Speech-to-Text (STT).
   - *Imagem*: OCR dirigido via Tesseract para extração de texto em comprovantes e embeddings visual CLIP (`ViT-B/32`) para busca no catálogo.
 * **Roteador / Orquestrador**: Classifica o contexto (analisando as últimas 1 a 3 mensagens) em um dos 4 domínios de atendimento (Vendas, Suporte, Atendimento Geral, Agendamento) ou em `fora_escopo` e determina o caminho de execução.
@@ -79,6 +82,7 @@ Os resultados finais serão consolidados ao término das avaliações detalhadas
 **Já medido — triagem de modelos (roteador e imagem, 229 mensagens não ambíguas, seed 42):** os dois Gemma 4 lideram a acurácia do roteador (12B: 85,2%; E4B: 84,7%, empate estatístico), seguidos por Qwen2.5-VL 3B (79,9%) e 7B (77,3%), que formam com eles os 4 finalistas. Cinco candidatos foram eliminados (JSON inválido acima de 10% ou mais de 10 pp abaixo do melhor) (o Llama 3.2 11B Vision, que não carrega na versão atual do Ollama, foi descartado do pool). Na imagem, os Gemma 4 acertam o formato, mas aprovam como do portfólio parte dos objetos parecidos; os Qwen falham no formato em boa parte dos casos.
 
 **Pendente:**
+
 1. **Parâmetros de ingestão do RAG**: modelo de embedding, chunking, limiar e distância já medidos por `Recall@k`, `nDCG@10` e `MRR` sobre 167 perguntas (Etapas 0–5 e 6(a)); falta confirmar com LLM-as-judge o ganho na resposta (Etapa 7).
 2. **Qualidade do RAG e resistência a prompt injection** nos 4 finalistas (LLM-as-Judge; 147 perguntas com resposta, 20 sem resposta e 95 casos de injeção).
 3. **Latência**: tempo de resposta ponta a ponta na GPU local de 16GB frente ao fallback externo em nuvem.
@@ -93,12 +97,9 @@ As conclusões finais sobre o impacto arquitetural da utilização de RAG Multim
 
 ### 5. Referências
 
-1. **VASWANI, A. et al.** Attention Is All You Need. *Advances in Neural Information Processing Systems (NeurIPS)*, 2017.
-2. **LEWIS, P. et al.** Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. *Advances in Neural Information Processing Systems (NeurIPS)*, 2020.
-3. **RADFORD, A. et al.** Robust Speech Recognition via Large-Scale Weak Supervision (Whisper). *OpenAI Technical Report*, 2022.
-4. **RADFORD, A. et al.** Learning Transferable Visual Models From Natural Language Supervision (CLIP). *International Conference on Machine Learning (ICML)*, 2021.
-5. **MODEL CONTEXT PROTOCOL (MCP).** Specification and SDKs for Model Context Protocol. Anthropic Open Standard, 2024. Disponível em: <https://modelcontextprotocol.io/>.
-6. **OLLAMA.** Get up and running with Llama 3.1, Qwen2.5, and other large language models locally. 2024. Disponível em: <https://ollama.com/>.
+1. **MODEL CONTEXT PROTOCOL (MCP).** Specification and SDKs for Model Context Protocol. Anthropic Open Standard, 2024. Disponível em: [https://modelcontextprotocol.io/](https://modelcontextprotocol.io/).
+2. **OLLAMA.** Get up and running with Llama 3.1, Qwen2.5, and other large language models locally. 2024. Disponível em: [https://ollama.com/](https://ollama.com/).
+3. 
 
 ---
 
@@ -109,6 +110,7 @@ A aplicação é implantada e executada em ambiente de servidor local GPU e disp
 🌐 **URL de Acesso Público**: [http://augustoglauco.duckdns.org:3001](http://augustoglauco.duckdns.org:3001) (HTTP, sem TLS; ver nota abaixo)
 
 #### Resumo da Infraestrutura Local:
+
 * **Banco Relacional & Vetorial**: PostgreSQL 15+ e Qdrant Vector DB containerizados via Docker (`docker-compose up -d`).
 * **Inferência Local**: Serviço Ollama rodando localmente com suporte a GPU NVIDIA 16GB VRAM (CUDA 11.8+).
 * **Backend**: FastAPI (Python 3.14) executando na porta `8000` (documentação Swagger em `/docs`).
@@ -137,7 +139,7 @@ Para interagir com o sistema e explorar todas as suas funcionalidades:
    - **Fotos e Imagens**: Anexe fotos de comprovantes (OCR) ou imagens de produtos para busca por similaridade visual no catálogo (CLIP).
    - **Cards Interativos**: Interaja diretamente com os cards ricos de produtos, cotações B2B, confirmações de agendamento no Google Calendar e download do documento-fonte do RAG; administradores autenticados também podem pedir gráficos analíticos dinâmicos, consultar dados e executar ações (incluir ou alterar produto, baixa de estoque, concluir ou cancelar venda) diretamente no chat, sempre com prévia e confirmação.
 
-*Para o manual de instrução do usuário final, consulte:* [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md).  
+*Para o manual de instrução do usuário final, consulte:* [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md).
 *Para o manual do administrador (ingestão RAG, crawler e parametrização da IA), consulte:* [HOWTO_ADMINISTRADOR.md](docs/Manuais/HOWTO_ADMINISTRADOR.md).
 
 ---
