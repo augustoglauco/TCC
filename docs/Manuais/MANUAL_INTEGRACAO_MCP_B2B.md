@@ -24,6 +24,8 @@ https://augustoglauco.duckdns.org:8443/mcp
 ```
 
 ### Autenticação
+A chave é gerada pela equipe da empresa no cadastro do seu usuário parceiro e entregue uma única vez; se perder, peça uma nova (a anterior é revogada).
+
 A comunicação é protegida por **Criptografia TLS (HTTPS)** e **Autenticação via Bearer Token**.
 
 Toda requisição para o servidor (inicialização SSE, listagem e chamadas de ferramentas) **DEVE** conter o seguinte cabeçalho HTTP:

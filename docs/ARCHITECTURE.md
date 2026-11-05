@@ -1478,6 +1478,17 @@ habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
      Pedidos", no perfil e nos gráficos como as de qualquer cliente, e não
      mais como "Anônimo / Visitante". Chamada sem autenticação (testes diretos)
      continua sem e-mail.
+   - **Chaves geradas pelo Admin (decisão de 2026-11-05):** além do `.env`, o
+     Admin gera a chave de um cliente em `/conta/cadastro` (perfil "Parceiro
+     B2B") ou em `/admin/usuarios` (`POST /api/admin/parceiros-b2b/{id}/chave`).
+     A tabela `chaves_parceiro` (migração `0033`) guarda só o SHA-256 da chave
+     (`b2b_` + `secrets.token_urlsafe(32)`), o prefixo exibido e `revogada_em`; o
+     texto aparece uma única vez, na geração. Gerar outra chave revoga as
+     anteriores do cliente. O `ChaveParceiroVerifier` confere primeiro as chaves
+     do `.env` e depois o banco (`client_id` = e-mail do cliente), então a chave
+     vale na hora, sem reiniciar o servidor MCP; o servidor continua exigindo
+     pelo menos uma chave no `.env` para subir (falha fechada). `# MVP:` sem
+     expiração automática, escopos nem rate limiting.
    - A verificação usa o suporte nativo do SDK (`TokenVerifier`, modo
      resource server), implementado em `app.mcp_server.auth`, comparando a
      chave em tempo constante (`hmac.compare_digest`).

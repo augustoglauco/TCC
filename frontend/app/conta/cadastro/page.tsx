@@ -4,15 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import { register as registrarConta } from "@/lib/api/auth";
+import { gerarChaveParceiro, type ChaveParceiroGerada } from "@/lib/api/parceirosB2b";
+import { ChaveB2bDialog } from "@/components/admin/ChaveB2bDialog";
 
 export default function CadastroPage() {
   const router = useRouter();
-  const { user, register: registerUser } = useAuthStore();
+  const { user, token, register: registerUser } = useAuthStore();
+  const [chaveGerada, setChaveGerada] = useState<ChaveParceiroGerada | null>(null);
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("12345");
-  const [perfil, setPerfil] = useState<"Cliente" | "Admin">("Cliente");
+  const [perfil, setPerfil] = useState<"Cliente" | "Admin" | "B2B">("Cliente");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +28,18 @@ export default function CadastroPage() {
     setError(null);
 
     try {
+      if (perfil === "B2B") {
+        // Cria o cliente sem trocar a sessão do admin e já gera a chave de acesso ao MCP B2B.
+        const nova = await registrarConta({
+          nome: nome.trim(),
+          email: email.trim(),
+          password,
+          perfil: "Cliente",
+          requesterEmail: user?.email,
+        });
+        setChaveGerada(await gerarChaveParceiro(token, nova.user.id));
+        return;
+      }
       if (
         perfil === "Admin" &&
         user?.perfil?.toLowerCase() !== "admin" &&
@@ -184,7 +200,7 @@ export default function CadastroPage() {
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
               Tipo de Perfil de Usuário
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${isCurrentAdmin ? "sm:grid-cols-3" : "grid-cols-2"}`}>
               <button
                 type="button"
                 onClick={() => setPerfil("Cliente")}
@@ -220,6 +236,26 @@ export default function CadastroPage() {
                   Acesso total ao Menu Admin, Catálogo de Produtos e Ingestão.
                 </p>
               </button>
+
+              {isCurrentAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setPerfil("B2B")}
+                  className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                    perfil === "B2B"
+                      ? "border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">🏢 Parceiro B2B</span>
+                    {perfil === "B2B" && <span className="text-emerald-600 text-xs">✓</span>}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Cliente com chave de acesso ao MCP B2B, gerada ao cadastrar.
+                  </p>
+                </button>
+              )}
             </div>
           </div>
 
@@ -234,7 +270,11 @@ export default function CadastroPage() {
             disabled={isLoading}
             className="w-full rounded-xl bg-blue-600 py-3 px-4 text-sm font-bold text-white shadow-xs hover:bg-blue-700 transition-all disabled:opacity-50 cursor-pointer"
           >
-            {isLoading ? "Cadastrando..." : "Criar Minha Conta"}
+            {isLoading
+              ? "Cadastrando..."
+              : perfil === "B2B"
+                ? "Cadastrar Parceiro e Gerar Chave"
+                : "Criar Minha Conta"}
           </button>
         </form>
 
@@ -247,6 +287,15 @@ export default function CadastroPage() {
           </p>
         </div>
       </div>
+      {chaveGerada && (
+        <ChaveB2bDialog
+          chave={chaveGerada}
+          onFechar={() => {
+            setChaveGerada(null);
+            router.push("/admin/usuarios");
+          }}
+        />
+      )}
     </div>
   );
 }

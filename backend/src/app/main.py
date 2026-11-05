@@ -22,6 +22,7 @@ from app.api.admin_estoque_agente import router as admin_estoque_agente_router
 from app.api.admin_ferramentas import router as admin_ferramentas_router
 from app.api.admin_mensagens import router as admin_mensagens_router
 from app.api.admin_metrics import router as admin_metrics_router
+from app.api.admin_parceiros_b2b import router as admin_parceiros_b2b_router
 from app.api.admin_pedidos_conversao import router as admin_pedidos_router
 from app.api.admin_products import router as admin_products_router
 from app.api.agendamentos import router as agendamentos_router
@@ -381,6 +382,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(admin_atendimento_router)
     app.include_router(admin_pedidos_router)
+    app.include_router(admin_parceiros_b2b_router)
     app.include_router(admin_charts_router)
     app.include_router(admin_metrics_router)
     app.include_router(admin_ferramentas_router)

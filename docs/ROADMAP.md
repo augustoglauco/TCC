@@ -3193,6 +3193,13 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       o e-mail em `pedidos.user_email`, então a reserva deixa de aparecer como
       "Anônimo / Visitante" em Gestão de Pedidos. Testes em `test_mcp_b2b_server.py` e
       `test_mcp_b2b_auth.py`.
+- [x] **Admin gera a chave B2B pela tela de usuários (R12, Fase 11, 2026-11-05):**
+      tabela `chaves_parceiro` (hash SHA-256, prefixo, revogação; migração `0033`),
+      API `GET/POST/DELETE /api/admin/parceiros-b2b`, verificador do MCP aceitando
+      também as chaves do banco (valem na hora, sem reiniciar) e UI: perfil
+      "Parceiro B2B" em `/conta/cadastro` e coluna "Chave B2B (MCP)" em
+      `/admin/usuarios`, com o texto mostrado uma única vez. Testes em
+      `test_chaves_parceiro.py`, `AdminUsuariosPage.test.tsx`, `CadastroPage.test.tsx`.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 

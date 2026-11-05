@@ -56,6 +56,7 @@ def main() -> None:
 
     db_engine = create_db_engine(settings.postgres_dsn)
     session_factory = create_session_factory(db_engine)
+    autenticacao.verificador.usar_banco(session_factory)  # chaves geradas pelo Admin
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host, port=settings.qdrant_port, timeout_s=settings.qdrant_timeout_s
     )

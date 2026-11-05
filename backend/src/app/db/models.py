@@ -435,6 +435,24 @@ class Cliente(Base):
     compras: Mapped[list[ClienteCompra]] = relationship(back_populates="cliente")
 
 
+class ChaveParceiro(Base):
+    """Chave de acesso ao MCP B2B gerada pelo Admin para um cliente-parceiro
+    (R12, decisão de 2026-11-05). Só o hash SHA-256 é guardado: o texto da chave
+    aparece uma única vez, na geração. Uma nova chave revoga as anteriores.
+
+    # MVP: sem expiração automática nem escopos; revogar é marcar `revogada_em`.
+    """
+
+    __tablename__ = "chaves_parceiro"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    cliente_id: Mapped[int] = mapped_column(ForeignKey("clientes.id"), index=True)
+    prefixo: Mapped[str] = mapped_column(String(16))
+    chave_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    revogada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class ClienteCompra(Base):
     """Compra de um cliente (R10) — quantidade e recência definem se ele é
     Cliente ou Esporádico."""

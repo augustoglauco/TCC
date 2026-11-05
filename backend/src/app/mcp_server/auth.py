@@ -20,6 +20,7 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.transport_security import TransportSecuritySettings
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
 class ChavesParceirosInvalidasError(ValueError):
@@ -74,6 +75,20 @@ class ChaveParceiroVerifier:
 
     def __init__(self, chaves: dict[str, str]) -> None:
         self._chaves = dict(chaves)
+        self._session_factory: async_sessionmaker[AsyncSession] | None = None
+
+    def usar_banco(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        """Passa a aceitar também as chaves geradas pelo Admin (tabela `chaves_parceiro`),
+        cujo `client_id` é o e-mail do cliente dono da chave."""
+        self._session_factory = session_factory
+
+    async def _parceiro_no_banco(self, token: str) -> str | None:
+        if self._session_factory is None:
+            return None
+        from app.services.chaves_parceiro import email_do_parceiro_da_chave
+
+        async with self._session_factory() as session:
+            return await email_do_parceiro_da_chave(session, token)
 
     async def verify_token(self, token: str) -> AccessToken | None:
         # Compara com todas as chaves em tempo constante (`compare_digest`),
@@ -83,6 +98,8 @@ class ChaveParceiroVerifier:
         for chave, nome in self._chaves.items():
             if hmac.compare_digest(token.encode(), chave.encode()):
                 parceiro = nome
+        if parceiro is None:
+            parceiro = await self._parceiro_no_banco(token)
         if parceiro is None:
             return None
         return AccessToken(token=token, client_id=parceiro, scopes=[])

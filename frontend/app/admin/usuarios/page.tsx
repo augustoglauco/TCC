@@ -5,9 +5,21 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { fetchUsers } from "@/lib/api/auth";
 import { User } from "@/lib/types/auth";
+import {
+  fetchChavesParceiros,
+  gerarChaveParceiro,
+  revogarChaveParceiro,
+  type ChaveParceiroAtiva,
+  type ChaveParceiroGerada,
+} from "@/lib/api/parceirosB2b";
+import { ChaveB2bDialog } from "@/components/admin/ChaveB2bDialog";
 
 export default function AdminUsuariosPage() {
   const currentUser = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const [chaves, setChaves] = useState<Record<number, ChaveParceiroAtiva>>({});
+  const [chaveGerada, setChaveGerada] = useState<ChaveParceiroGerada | null>(null);
+  const [chaveEmAndamento, setChaveEmAndamento] = useState<number | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,13 +34,50 @@ export default function AdminUsuariosPage() {
   // no proprio handler.
   const carregarUsuarios = async () => {
     try {
-      const data = await fetchUsers();
+      const [data, ativas] = await Promise.all([
+        fetchUsers(),
+        // Falha ao listar as chaves não impede a lista de usuários.
+        fetchChavesParceiros(token).catch(() => [] as ChaveParceiroAtiva[]),
+      ]);
       setUsers(data);
+      setChaves(Object.fromEntries(ativas.map((c) => [c.cliente_id, c])));
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao carregar usuários.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const gerarChave = async (clienteId: number, regenerar: boolean) => {
+    if (regenerar && !window.confirm("Gerar uma nova chave revoga a atual. Continuar?")) return;
+    setChaveEmAndamento(clienteId);
+    try {
+      setChaveGerada(await gerarChaveParceiro(token, clienteId));
+      setError(null);
+      await carregarUsuarios();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao gerar a chave B2B.");
+    } finally {
+      setChaveEmAndamento(null);
+    }
+  };
+
+  const revogarChave = async (clienteId: number) => {
+    if (
+      !window.confirm("Revogar a chave B2B deste parceiro? O acesso dele ao MCP deixa de valer.")
+    ) {
+      return;
+    }
+    setChaveEmAndamento(clienteId);
+    try {
+      await revogarChaveParceiro(token, clienteId);
+      setError(null);
+      await carregarUsuarios();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao revogar a chave B2B.");
+    } finally {
+      setChaveEmAndamento(null);
     }
   };
 
@@ -193,6 +242,7 @@ export default function AdminUsuariosPage() {
                 <th className="px-4 py-3">E-mail</th>
                 <th className="px-4 py-3">Perfil Comercial</th>
                 <th className="px-4 py-3">Origem / Motivo</th>
+                <th className="px-4 py-3">Chave B2B (MCP)</th>
                 <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
@@ -222,6 +272,49 @@ export default function AdminUsuariosPage() {
                     <td className="px-4 py-3.5 text-slate-500 text-[11px]">
                       {u.perfil_motivo || "Cadastro direto no sistema"}
                     </td>
+                    <td className="px-4 py-3.5 text-[11px]">
+                      {isUserAdmin || u.id === 0 ? (
+                        <span className="text-slate-400">-</span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {chaves[u.id] ? (
+                            <>
+                              <span
+                                className="rounded bg-emerald-50 px-2 py-0.5 font-mono text-emerald-700 border border-emerald-200"
+                                title={`Criada em ${new Date(chaves[u.id].criada_em).toLocaleString("pt-BR")}`}
+                              >
+                                {chaves[u.id].prefixo}…
+                              </span>
+                              <button
+                                type="button"
+                                disabled={chaveEmAndamento === u.id}
+                                onClick={() => gerarChave(u.id, true)}
+                                className="font-semibold text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
+                              >
+                                Gerar nova
+                              </button>
+                              <button
+                                type="button"
+                                disabled={chaveEmAndamento === u.id}
+                                onClick={() => revogarChave(u.id)}
+                                className="font-semibold text-rose-600 hover:text-rose-800 underline disabled:opacity-50"
+                              >
+                                Revogar
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={chaveEmAndamento === u.id}
+                              onClick={() => gerarChave(u.id, false)}
+                              className="font-semibold text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
+                            >
+                              Gerar chave B2B
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3.5 text-right">
                       <Link
                         href={`/pedidos/historico?email=${encodeURIComponent(u.email)}`}
@@ -237,6 +330,7 @@ export default function AdminUsuariosPage() {
           </table>
         </div>
       )}
+      {chaveGerada && <ChaveB2bDialog chave={chaveGerada} onFechar={() => setChaveGerada(null)} />}
     </div>
   );
 }
