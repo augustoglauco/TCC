@@ -31,6 +31,16 @@ streamlit run src/app.py
 Informe a URL do servidor (default `http://127.0.0.1:8100/mcp`) e a chave do
 parceiro configurada em `MCP_B2B_PARTNER_KEYS` na barra lateral.
 
+## Publicar no Streamlit Community Cloud
+
+- **Main file path:** `cliente-b2b/src/app.py`.
+- O Cloud lê as dependências de `cliente-b2b/src/requirements.txt` (pasta do arquivo
+  principal) ou de um `requirements.txt` na raiz; o de `cliente-b2b/` não é encontrado.
+  Se mudar as dependências, atualize os dois arquivos.
+- Em *Advanced settings*, use Python 3.11 ou superior.
+- O servidor MCP precisa estar acessível pela internet: na barra lateral use a URL
+  pública (`https://augustoglauco.duckdns.org:8443/mcp`), não `127.0.0.1`.
+
 ## Limitações desta demonstração (MVP)
 
 - A ferramenta `reservar_pedido` do servidor exige um centro de distribuição

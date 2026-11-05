@@ -1,0 +1,7 @@
+# Dependências de execução para publicar no Streamlit Community Cloud, que lê este
+# arquivo na pasta do arquivo principal (cliente-b2b/src/app.py). Mantenha em sincronia
+# com cliente-b2b/requirements.txt (que também traz as de teste) e pyproject.toml.
+mcp>=2.0.0
+httpx>=0.28.0
+streamlit>=1.40.0
+pydantic>=2.10.0
