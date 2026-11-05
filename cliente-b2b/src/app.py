@@ -124,7 +124,10 @@ def run_async(coro):
 
 def _exibir(dado, modo_dev: bool):
     """Mostra `dado` como JSON no modo desenvolvedor, senão em formato livre."""
-    st.json(dado) if modo_dev else st.write(dado)
+    if modo_dev:
+        st.json(dado)
+    else:
+        st.write(dado)
 
 
 def _carregar_em_sessao(chave: str, chamada):
@@ -310,7 +313,12 @@ def _calcular_cotacao(client: B2BMCPClient, modo_dev: bool):
             col_m3.metric("Total Líquido Cotação", formatar_moeda(resumo["total"]))
 
             st.markdown("##### Detalhamento por Item:")
-            st.json(cotacao) if modo_dev else st.table(cotacao.get("itens", []))
+            # if/else em vez de expressão condicional: o "magic" do Streamlit exibiria o
+            # valor devolvido (um DeltaGenerator) como texto na tela.
+            if modo_dev:
+                st.json(cotacao)
+            else:
+                st.table(cotacao.get("itens", []))
         except Exception as exc:
             st.error(f"Erro ao cotar: {exc}")
 
