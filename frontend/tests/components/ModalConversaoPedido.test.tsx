@@ -12,6 +12,8 @@ vi.mock("@/lib/api/adminPedidos", () => ({
   analisarComprovante: vi.fn(),
   confirmarConversaoManual: vi.fn(),
   converterAutoAdmin: vi.fn(),
+  urlComprovantePedido: (id: string, token: string | null) =>
+    `http://api/admin/pedidos/${id}/comprovante?token=${token}`,
 }));
 
 const makePedido = (overrides: Partial<PedidoAdminItem> = {}): PedidoAdminItem => ({
@@ -80,7 +82,11 @@ describe("ModalConversaoPedido", () => {
         pedido={makePedido({ comprovante_url: "https://cdn.example.com/comp.pdf" })}
       />,
     );
-    expect(screen.getByText("Abrir Arquivo")).toBeInTheDocument();
+    // O link passa pela rota do backend com o token: `comprovante_url` é caminho de disco.
+    expect(screen.getByText("Abrir Arquivo")).toHaveAttribute(
+      "href",
+      "http://api/admin/pedidos/pedido-uuid-abc/comprovante?token=mock-token",
+    );
   });
 
   it("exibe parecer da auditoria quando llm_parecer está preenchido", () => {

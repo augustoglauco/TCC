@@ -7,6 +7,7 @@ import {
   confirmarConversaoManual,
   converterAutoAdmin,
   converterManualSimples,
+  urlComprovantePedido,
   type AnaliseComprovanteResponse,
   type PedidoAdminItem,
 } from "@/lib/api/adminPedidos";
@@ -369,7 +370,7 @@ export default function ModalConversaoPedido({
           <div className="mt-3 text-xs text-blue-600 bg-blue-50 p-2.5 rounded border border-blue-200 flex items-center justify-between">
             <span>📎 Comprovante anexado no pedido:</span>
             <a
-              href={pedido.comprovante_url}
+              href={urlComprovantePedido(pedido.id, token)}
               target="_blank"
               rel="noreferrer"
               className="underline font-semibold hover:text-blue-800"

@@ -77,6 +77,12 @@ export async function fetchPedidos(
   return res.json();
 }
 
+/** URL para abrir o comprovante do pedido no navegador (link `<a>` não envia cabeçalho, daí `?token=`). */
+export function urlComprovantePedido(pedidoId: string, token: string | null): string {
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  return `${getApiBaseUrl()}/api/admin/pedidos/${pedidoId}/comprovante${query}`;
+}
+
 export async function fetchPedido(pedidoId: string, token?: string): Promise<PedidoAdminItem> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/pedidos/${pedidoId}`, {

@@ -11,6 +11,8 @@ vi.mock("@/lib/api/adminPedidos", () => ({
   analisarComprovante: vi.fn(),
   confirmarConversaoManual: vi.fn(),
   converterAutoAdmin: vi.fn(),
+  urlComprovantePedido: (id: string, token: string | null) =>
+    `http://api/admin/pedidos/${id}/comprovante?token=${token}`,
 }));
 
 describe("Painel de Gestão de Pedidos e Conversão de Reserva (/admin/pedidos)", () => {

@@ -18,7 +18,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,6 +116,25 @@ async def listar_pedidos_admin(
     res = await session.execute(stmt)
     pedidos = res.scalars().all()
     return [_serializar_pedido(p) for p in pedidos]
+
+
+@router.get("/{pedido_id}/comprovante")
+async def baixar_comprovante_admin(
+    pedido_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db_session),
+) -> FileResponse:
+    """Serve o arquivo do comprovante anexado ao pedido (o link do modal usa `?token=`).
+
+    `comprovante_url` é um caminho relativo de disco que nenhuma rota estática serve;
+    só o nome do arquivo é usado, para não sair de `COMPROVANTES_DIR`.
+    """
+    pedido = await obter_pedido(session, pedido_id)
+    if not pedido or not pedido.comprovante_url:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido sem comprovante anexado.")
+    arquivo = COMPROVANTES_DIR / Path(pedido.comprovante_url).name
+    if not arquivo.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Arquivo do comprovante não encontrado.")
+    return FileResponse(arquivo)
 
 
 @router.get("/{pedido_id}")

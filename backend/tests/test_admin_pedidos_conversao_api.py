@@ -189,3 +189,32 @@ async def test_admin_converter_auto_admin_divergente(
         # Confere status alterado para pagamento_divergente no banco
         saved = await db_session.get(Pedido, pedido_reservado.id)
         assert saved.status == "pagamento_divergente"
+
+
+@pytest.mark.asyncio
+async def test_baixar_comprovante_serve_arquivo_ou_404(
+    test_app, admin_headers, pedido_reservado, db_session, tmp_path, monkeypatch
+):
+    from app.api import admin_pedidos_conversao as modulo
+
+    monkeypatch.setattr(modulo, "COMPROVANTES_DIR", tmp_path)
+    url = f"/api/admin/pedidos/{pedido_reservado.id}/comprovante"
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Sem comprovante anexado.
+        assert (await client.get(url, headers=admin_headers)).status_code == 404
+
+        # Anexado, mas o arquivo sumiu do disco.
+        pedido_reservado.comprovante_url = "/uploads/comprovantes/recibo.txt"
+        await db_session.commit()
+        assert (await client.get(url, headers=admin_headers)).status_code == 404
+
+        # Arquivo presente: autorizado por cabeçalho ou por ?token= (link do modal).
+        (tmp_path / "recibo.txt").write_bytes(b"pago")
+        res = await client.get(url, headers=admin_headers)
+        assert (res.status_code, res.content) == (200, b"pago")
+        token = admin_headers["Authorization"].removeprefix("Bearer ")
+        assert (await client.get(url, params={"token": token})).content == b"pago"
+
+        # Sem credencial de admin.
+        assert (await client.get(url)).status_code == 403
