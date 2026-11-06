@@ -64,6 +64,21 @@ describe("AgenteEstoqueIndicador", () => {
     expect(indicador).toHaveTextContent("3 produtos avaliados, 1 alerta");
   });
 
+  it("rodada sem alerta novo ainda mostra quando foi o último alerta (deduplicação de 24 h)", async () => {
+    mockedFetch.mockResolvedValue(
+      status({
+        ultima_execucao: execucao({ produtos_avaliados: 1, alertas_criados: 0 }),
+        ultimo_alerta_em: "2026-10-31T11:55:00Z",
+      }),
+    );
+
+    render(<AgenteEstoqueIndicador />);
+
+    const indicador = await screen.findByTestId("agente-estoque-indicador");
+    expect(indicador).toHaveTextContent("1 produto avaliado, 0 alertas novos");
+    expect(indicador).toHaveTextContent("último alerta há 5 min");
+  });
+
   it("cinza: desativado, com o caminho para ativar", async () => {
     mockedFetch.mockResolvedValue(status({ modo: "desativado" }));
 

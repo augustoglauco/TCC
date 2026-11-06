@@ -57,8 +57,13 @@ function descricao(status: StatusAgenteEstoque, estado: Estado): string {
     "produto avaliado",
     "produtos avaliados",
   );
-  const alertas = plural(execucao?.alertas_criados ?? 0, "alerta", "alertas");
-  return `Agente de estoque ativo (${modo}) · última avaliação ${quando} · ${produtos}, ${alertas}`;
+  // "Novos": o agente não repete o alerta de um produto por 24 h, então uma rodada
+  // seguinte ao alerta mostra 0 mesmo havendo alerta ativo em Mensagens de Agentes.
+  const alertas = plural(execucao?.alertas_criados ?? 0, "alerta novo", "alertas novos");
+  const ultimo = status.ultimo_alerta_em
+    ? ` · último alerta ${haQuanto(status.ultimo_alerta_em)}`
+    : "";
+  return `Agente de estoque ativo (${modo}) · última avaliação ${quando} · ${produtos}, ${alertas}${ultimo}`;
 }
 
 /** Mostra no catálogo se o agente de estoque está habilitado e quando avaliou pela última vez. */
