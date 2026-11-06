@@ -2,7 +2,7 @@
 
 > Spec resultante de sessão de brainstorming em 2026-09-05. Cobre apenas a
 > Fase 1 do `docs/ROADMAP.md`. Decisões de arquitetura já foram propagadas
-> para `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` e `docs/TECHNOLOGY_STACK.md`
+> para `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` e `TECHNOLOGY_STACK.md`
 > — este documento detalha o desenho de implementação, não repete o "porquê"
 > de cada escolha, que vive nesses três arquivos.
 

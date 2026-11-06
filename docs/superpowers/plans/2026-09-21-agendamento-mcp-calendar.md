@@ -4,11 +4,11 @@
 
 > **Nota (2026-09-23):** o "MCP oficial do Google Calendar" descrito neste
 > plano (`calendarmcp.googleapis.com`, autenticação via
-> `scripts/authorize_google_calendar.py` guardando client_id/secret/refresh
+> `authorize_google_calendar.py` guardando client_id/secret/refresh
 > token no backend) foi trocado — esse serviço está em Developer Preview e
 > não aceita contas Gmail pessoais. O sistema hoje consome um MCP de
 > terceiro self-hosted (`calendar-mcp-server`), que gerencia sua própria
-> autenticação; `scripts/authorize_google_calendar.py` e
+> autenticação; `authorize_google_calendar.py` e
 > `_load_client_secrets`/`_load_refresh_token`/`_get_access_token` em
 > `google_calendar.py` foram removidos. Ver decisão completa e atual em
 > `docs/ARCHITECTURE.md` §5 ("Decisão revista (Fase 4A, troca do MCP
@@ -18,7 +18,7 @@
 
 **Goal:** Fechar R11 — o assistente reconhece a intenção de agendamento de visita, coleta data/hora/nome/e-mail/telefone ao longo da conversa, valida o horário (expediente + conflito de agenda) e, com confirmação explícita do visitante, cria o evento na agenda da empresa via o MCP oficial do Google Calendar, que dispara a confirmação por e-mail sozinho.
 
-**Architecture:** Três módulos novos — `app/router/scheduling.py` (máquina de estado pura: slots, extração via LLM, validação de horário, mensagens), `app/mcp_client/google_calendar.py` (cliente MCP Streamable HTTP com OAuth de refresh token) e `scripts/authorize_google_calendar.py` (consentimento único do admin) — mais um novo ramo em `orchestrator.handle_message` para `domain == "agendamento"` que substitui o stub atual.
+**Architecture:** Três módulos novos — `app/router/scheduling.py` (máquina de estado pura: slots, extração via LLM, validação de horário, mensagens), `app/mcp_client/google_calendar.py` (cliente MCP Streamable HTTP com OAuth de refresh token) e `authorize_google_calendar.py` (consentimento único do admin) — mais um novo ramo em `orchestrator.handle_message` para `domain == "agendamento"` que substitui o stub atual.
 
 **Tech Stack:** Python 3.13, FastAPI, `mcp>=1.0` (SDK oficial, transporte Streamable HTTP via `mcp.client.streamable_http`), `httpx` (chamadas REST simples: refresh de token OAuth, e é o que o resto do backend já usa), `pydantic`/`pydantic-settings`, `pytest` + `pytest-asyncio`.
 
@@ -44,10 +44,10 @@
 **Criar:**
 - `backend/src/app/router/scheduling.py` — `BookingSlots`, `SchedulingConfig`, extração de slots via LLM, validação de horário, mensagens ao visitante, estado em memória por `conversation_id`.
 - `backend/src/app/mcp_client/google_calendar.py` — `GoogleCalendarMCPClient`, `CalendarClient` (Protocol), `GoogleCalendarAuthError`, `GoogleCalendarConnectionError`.
-- `backend/scripts/authorize_google_calendar.py` — script administrativo de consentimento único.
+- `authorize_google_calendar.py` — script administrativo de consentimento único.
 - `backend/tests/test_scheduling.py`
 - `backend/tests/test_google_calendar_client.py`
-- `backend/tests/test_authorize_google_calendar.py`
+- `test_authorize_google_calendar.py`
 
 **Modificar:**
 - `backend/src/app/config.py` — novas settings (token path, expediente).
@@ -1259,11 +1259,11 @@ git commit -m "feat(agendamento): is_time_available/create_event via MCP do Goog
 
 ---
 
-## Task 7: `scripts/authorize_google_calendar.py` — Consentimento único do admin
+## Task 7: `authorize_google_calendar.py` — Consentimento único do admin
 
 **Files:**
-- Create: `backend/scripts/authorize_google_calendar.py`
-- Test: `backend/tests/test_authorize_google_calendar.py`
+- Create: `authorize_google_calendar.py`
+- Test: `test_authorize_google_calendar.py`
 
 **Interfaces:**
 - Consumes: `app.config.get_settings` (já existe).

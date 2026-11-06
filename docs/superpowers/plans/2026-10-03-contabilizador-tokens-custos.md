@@ -293,7 +293,7 @@ git commit -m "feat(chat): add conversation closure endpoint and 30-min inactivi
 **Files:**
 - Create: `backend/src/app/api/admin_metrics.py`
 - Modify: `backend/src/app/main.py`
-- Test: `backend/tests/test_admin_metrics_api.py`
+- Test: `test_admin_metrics_api.py`
 
 **Interfaces:**
 - Consumes: `Conversa` and `ConversaMensagem` models.

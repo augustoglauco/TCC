@@ -772,7 +772,7 @@ git commit -m "feat(dashboards): add admin dashboards page and gear menu integra
 
 **Files:**
 - Modify: `docs/ROADMAP.md`
-- Modify: `docs/ADMIN_MANUAL.md` (or relevant doc)
+- Modify: `ADMIN_MANUAL.md` (or relevant doc)
 - Run: Pytest full suite, Vitest full suite, Next.js build.
 
 - [ ] **Step 1: Run all backend tests**
@@ -789,7 +789,7 @@ Expected: PASS (Clean build with zero errors)
 
 - [ ] **Step 4: Update Documentation & Roadmap**
 - Mark roadmap item as completed in `docs/ROADMAP.md`.
-- Document chart generation and `/admin/dashboards` in `docs/ADMIN_MANUAL.md` or `docs/MANUAL_USUARIO.md`.
+- Document chart generation and `/admin/dashboards` in `ADMIN_MANUAL.md` or `MANUAL_USUARIO.md`.
 
 - [ ] **Step 5: Commit**
 ```bash

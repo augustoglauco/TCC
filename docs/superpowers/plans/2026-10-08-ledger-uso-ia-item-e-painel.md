@@ -600,7 +600,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `backend/src/app/api/admin_metrics.py` (reescrita quase total: remove `MetricSummary`, `DailyMetric`, `get_token_and_cost_metrics` e a heurística de visão; adiciona o endpoint novo e o helper de janela)
 - Test: `backend/tests/test_admin_metrics_ai_usage.py` (criar)
-- Delete: `backend/tests/test_admin_metrics_api.py`, `backend/tests/test_admin_metrics_vision.py`
+- Delete: `test_admin_metrics_api.py`, `test_admin_metrics_vision.py`
 
 **Interfaces:**
 - Consumes: `app.services.ai_usage_report.{LinhaAgregada, EventoDiario, AiUsageReport, montar_relatorio}` (Task 1).
@@ -1146,7 +1146,7 @@ Esses dois arquivos testavam exclusivamente `/tokens-and-costs`, incluindo a heu
 
 - [ ] **Step 5: Remova o teste do endpoint antigo em `test_ingestion_cost_metrics.py`**
 
-Apague de `backend/tests/test_ingestion_cost_metrics.py` a função `test_admin_metrics_aggregates_ingestion_and_chat_costs` (e a fixture `test_client` junto com a classe `_SingleSessionMaker`, se nada mais no arquivo as usar) — ela exercita o endpoint que deixou de existir. **Não** apague `test_crawler_records_ingestion_cost_event` ainda; a Task 3 cuida dele.
+Apague de `test_ingestion_cost_metrics.py` a função `test_admin_metrics_aggregates_ingestion_and_chat_costs` (e a fixture `test_client` junto com a classe `_SingleSessionMaker`, se nada mais no arquivo as usar) — ela exercita o endpoint que deixou de existir. **Não** apague `test_crawler_records_ingestion_cost_event` ainda; a Task 3 cuida dele.
 
 - [ ] **Step 6: Run the tests to verify they pass**
 
@@ -1186,7 +1186,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Modify: `backend/src/app/api/crawler.py:136-138`
 - Modify: `backend/src/app/db/models.py` (comentário marcando `IngestionCostEvent` como tabela morta)
 - Test: `backend/tests/test_rag_crawler_classifier.py`
-- Delete: `backend/tests/test_ingestion_cost_metrics.py`
+- Delete: `test_ingestion_cost_metrics.py`
 
 **Interfaces:**
 - Consumes: `app.services.ai_usage.registrar_uso_ia` (item A), `app.background_tasks.spawn_background_task`.

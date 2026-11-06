@@ -1484,8 +1484,8 @@ git commit -m "feat(telemetria): instrumenta identificação de produto por imag
 - Modify: `backend/src/app/api/admin_pedidos_conversao.py:202-208`, `:288-294` (as duas construções do `ComprovanteEvaluator` no admin)
 - Test: `backend/tests/test_comprovante_evaluator.py` (13 call sites de `ComprovanteEvaluator(...)` precisam do novo parâmetro — ver Step 7)
 - Test: `backend/tests/test_sales_catalog.py`, `backend/tests/test_chat_conversao_reserva.py` (verifique com `grep -rln "processar_conversao_comprovante(" backend/tests/*.py` quais outros arquivos chamam essa função)
-- Test: `backend/tests/test_mcp_b2b.py` (ou equivalente — `grep -rln "ComprovanteEvaluator\|converter_reserva_venda" backend/tests/*.py`)
-- Test: `backend/tests/test_admin_pedidos_conversao.py` (ou equivalente)
+- Test: `test_mcp_b2b.py` (ou equivalente — `grep -rln "ComprovanteEvaluator\|converter_reserva_venda" backend/tests/*.py`)
+- Test: `test_admin_pedidos_conversao.py` (ou equivalente)
 
 **Interfaces:**
 - Consumes: `registrar_uso_ia`/`spawn_background_task`.

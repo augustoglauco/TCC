@@ -38,7 +38,7 @@ código.
 
 Conferido em 2026-09-28 contra `backend/pyproject.toml`,
 `frontend/package.json` e `backend/docker-compose.yml` (conteúdo trazido do
-antigo `docs/TECHNOLOGY_STACK.md`, que citava bibliotecas que o projeto
+antigo `TECHNOLOGY_STACK.md`, que citava bibliotecas que o projeto
 nunca usou). O porquê das escolhas centrais está em `docs/ARCHITECTURE.md`
 §2. Ao trocar uma dependência, atualize esta tabela.
 

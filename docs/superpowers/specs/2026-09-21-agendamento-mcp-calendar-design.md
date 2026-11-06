@@ -59,7 +59,7 @@ humano autentica a cada sessão), uso o padrão padrão de automação OAuth do
 Google (`access_type=offline`): o **admin da empresa autoriza uma vez**, o
 backend guarda o refresh token e o renova sozinho a partir daí.
 
-- `backend/scripts/authorize_google_calendar.py` — script administrativo de
+- `authorize_google_calendar.py` — script administrativo de
   uso único (fora do fluxo do chat): lê o client secrets JSON
   (`GOOGLE_CALENDAR_CREDENTIALS_PATH`, já existente em `.env.example`),
   inicia o fluxo de autorização, imprime a URL para o admin abrir no

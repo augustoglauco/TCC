@@ -66,7 +66,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 
 Não crie documentos novos fora desta lista (resumos, cópias de spec, guias
 paralelos): o conteúdo vai para o documento acima que já cobre o assunto.
-Consolidação de 2026-09-28: `resumo.md`, `docs/TECHNOLOGY_STACK.md` e cinco
+Consolidação de 2026-09-28: `resumo.md`, `TECHNOLOGY_STACK.md` e cinco
 manuais foram incorporados aos documentos acima e apagados; três manuais e o
 plano anti-AI foram restaurados depois, a pedido (linhas acima).
 

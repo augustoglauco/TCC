@@ -60,7 +60,7 @@ que expõe esse fluxo) é documentada separadamente em `docs/FRONTEND.md`.
 
 ### Fluxo de uma mensagem no chat (`POST /api/chat/messages`)
 
-Trazido do antigo `docs/Manuais/DIAGRAMA_FLUXO_CHAT.md` e corrigido contra o
+Trazido do antigo `DIAGRAMA_FLUXO_CHAT.md` (de `docs/Manuais/`) e corrigido contra o
 código em 2026-09-28 (o diagrama antigo tinha um domínio `pos_venda`
 inexistente, Vendas passando pelo MCP B2B e o Monitor de Tom depois da
 resposta). Contrato dos eventos SSE: `docs/FRONTEND.md` §4.
@@ -119,7 +119,7 @@ Falha de dependência (Ollama, OpenRouter, RAG) vira o evento `error` com
 
 Versões e bibliotecas em uso: `docs/CONVENTIONS.md`, seção "Stack". Aqui fica
 só o porquê de cada escolha central (conteúdo trazido do antigo
-`docs/TECHNOLOGY_STACK.md` na consolidação de 2026-09-28).
+`TECHNOLOGY_STACK.md` na consolidação de 2026-09-28).
 
 - **PostgreSQL, não MongoDB:** os dados são relacionais (produto ↔ estoque
   ↔ pedido ↔ compatibilidade), reserva de pedido precisa de transação ACID,
@@ -1524,7 +1524,7 @@ um `Host` fora da URL pública, leitura das chaves e falha fechada. A suíte
 (Caddy, porta, certificado).
 
 **Decisão registrada (Desacoplamento do CRUD de produtos do RAG e autoridade única no SQL, 2026-10-03):**
-A sincronização automática anterior que gerava documentos sintéticos `produto_*.txt` na base vetorial Qdrant a cada alteração de produto (`app.rag.product_sync`) foi descontinuada: a dependência de Qdrant/Embedders no CRUD de produtos (`app.api.admin_products`) foi eliminada, e todos os 14 documentos sintéticos `produto_*.txt` foram permanentemente expurgados do PostgreSQL (`rag_documents`), do Qdrant (`docs_texto`) e dos arquivos em disco. Motivo: os produtos, preços de revendedor e venda, estoque por CD, compatibilidades e regras de desconto já residem estruturados no banco relacional PostgreSQL (`app.db.catalog` e `app.router.sales_catalog`), sendo consultados de forma determinística pelo `SalesCatalogClient` e pelas ferramentas MCP B2B. A geração de arquivos `.txt` no RAG gerava redundância de dados, risco de respostas desatualizadas por dessincronização vetorial e poluição da base de conhecimento com textos sintéticos. O PostgreSQL é a única fonte de verdade autoritativa para o catálogo de produtos. `backend/src/app/rag/product_sync.py` e `backend/tests/test_product_sync.py` foram fisicamente removidos em 2026-10-04 (achado da revisão do mesmo dia: tinham ficado órfãos no repositório desde este desacoplamento, sem nenhum código de produção importando-os mais).
+A sincronização automática anterior que gerava documentos sintéticos `produto_*.txt` na base vetorial Qdrant a cada alteração de produto (`app.rag.product_sync`) foi descontinuada: a dependência de Qdrant/Embedders no CRUD de produtos (`app.api.admin_products`) foi eliminada, e todos os 14 documentos sintéticos `produto_*.txt` foram permanentemente expurgados do PostgreSQL (`rag_documents`), do Qdrant (`docs_texto`) e dos arquivos em disco. Motivo: os produtos, preços de revendedor e venda, estoque por CD, compatibilidades e regras de desconto já residem estruturados no banco relacional PostgreSQL (`app.db.catalog` e `app.router.sales_catalog`), sendo consultados de forma determinística pelo `SalesCatalogClient` e pelas ferramentas MCP B2B. A geração de arquivos `.txt` no RAG gerava redundância de dados, risco de respostas desatualizadas por dessincronização vetorial e poluição da base de conhecimento com textos sintéticos. O PostgreSQL é a única fonte de verdade autoritativa para o catálogo de produtos. `product_sync.py` (em `app/rag/`) e `test_product_sync.py` foram fisicamente removidos em 2026-10-04 (achado da revisão do mesmo dia: tinham ficado órfãos no repositório desde este desacoplamento, sem nenhum código de produção importando-os mais).
 
 **Decisão registrada (Ativação e isolamento de collections por Purpose, 2026-10-03):**
 Evolução do modelo de collections configuráveis: o sistema passa a manter **uma collection ativa por finalidade (`purpose`)** de forma independente. As finalidades suportadas são `chat` (pública, atendendo ao widget do site), `mcp_b2b` (restrita a parceiros B2B e IA externa de parceiros) e `admin` (exclusiva para administradores). A função `activate_collection` passa a desativar apenas a collection ativa anterior daquele mesmo `purpose`. O endpoint `POST /api/rag/collections/{id}/activate` passa a permitir a ativação para qualquer finalidade. O servidor MCP B2B pesquisa nas collections ativas de `mcp_b2b` e `chat`; o chat público busca na collection ativa de `chat`; e o chat em modo Admin pesquisa nas collections ativas de `chat`, `mcp_b2b` e `admin`. A interface em `/admin/ingestao` reflete essa separação com cards de status dedicados por finalidade, filtros rápidos na tabela e validação que restringe a comparação no Playground a collections de mesmo `purpose`.

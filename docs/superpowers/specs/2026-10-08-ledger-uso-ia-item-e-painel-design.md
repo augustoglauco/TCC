@@ -314,9 +314,9 @@ operação), com dado real em vez de heurística de nome de modelo.
 - `diario` ordenado do mais recente para o mais antigo.
 
 **Testes removidos/reescritos** (cobrem o endpoint que deixa de existir):
-`backend/tests/test_admin_metrics_api.py`,
-`backend/tests/test_admin_metrics_vision.py` e a parte de
-`backend/tests/test_ingestion_cost_metrics.py` que exercita a agregação de
+`test_admin_metrics_api.py`,
+`test_admin_metrics_vision.py` e a parte de
+`test_ingestion_cost_metrics.py` que exercita a agregação de
 ingestão do painel. A cobertura equivalente renasce no arquivo novo, em
 cima do ledger; os casos de regressão nomeados acima são portados, não
 descartados.

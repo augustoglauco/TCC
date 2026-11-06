@@ -2430,8 +2430,8 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `tom_escalonamentos`. Antes, a única proteção desses endpoints era a
       UI do Next.js esconder a tela de quem não está logado como Admin.
 - [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §6):
-      `backend/src/app/rag/product_sync.py` e
-      `backend/tests/test_product_sync.py` estavam órfãos desde o
+      `product_sync.py` (em `app/rag/`) e
+      `test_product_sync.py` estavam órfãos desde o
       desacoplamento do CRUD de produtos do RAG (2026-10-03) — removidos
       fisicamente em 2026-10-04.
 - [x] **Transbordo para Atendimento Humano e Fila de Suporte - Human-in-the-Loop (2026-10-05):**

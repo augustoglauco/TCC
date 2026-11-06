@@ -19,7 +19,7 @@ Um plano de segurança anterior (`docs/PLANO_ANTI_AI_ATTACK.md`, commit `8a3b4ed
    escopo": OAuth/rate limiting/auditoria completa para o MCP B2B) e a
    natureza single-tenant do projeto (uma única empresa, sem múltiplos
    clientes/parceiros isolados por dados).
-2. A suíte de "60 testes" (`backend/tests/test_security_anti_ai_attacks.py`)
+2. A suíte de "60 testes" (`test_security_anti_ai_attacks.py`)
    era inteiramente auto-contida: todas as funções de defesa testadas
    (`sanitize_user_input`, `is_embedding_outlier`, `apply_gaussian_denoising`
    etc.) eram stubs definidos dentro do próprio arquivo de teste, sem

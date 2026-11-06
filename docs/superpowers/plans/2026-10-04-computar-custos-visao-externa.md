@@ -281,7 +281,7 @@ Em `app/api/admin_metrics.py`:
 
 - [x] **Step 4: Executar testes e validar aprovação**
 
-Run: `backend/.venv/bin/pytest backend/tests/test_chat_image_cost_accounting.py backend/tests/test_admin_metrics_api.py`
+Run: `pytest` (do venv do backend) em `test_chat_image_cost_accounting.py` e `test_admin_metrics_api.py`
 Expected: PASS.
 
 - [x] **Step 5: Commit Task 3**

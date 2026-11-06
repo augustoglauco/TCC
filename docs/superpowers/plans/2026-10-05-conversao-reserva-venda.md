@@ -84,7 +84,7 @@ Adicionar as colunas em `backend/src/app/db/models.py` no model `Pedido`:
 - `convertido_por: Mapped[str | None] = mapped_column(String(100), nullable=True)`
 - `llm_parecer: Mapped[str | None] = mapped_column(Text, nullable=True)`
 
-Criar o arquivo de migração `backend/migrations/versions/0021_conversao_reserva_venda.py`.
+Criar o arquivo de migração `0021_conversao_reserva_venda.py`.
 
 - [ ] **Step 4: Executar os testes novamente**
 
@@ -231,7 +231,7 @@ Expected: PASS.
 
 **Files:**
 - Create: `frontend/app/admin/pedidos/page.tsx`
-- Create: `frontend/app/admin/pedidos/modal_conversao.tsx`
+- Create: `modal_conversao.tsx`
 - Test: Testes de renderização frontend (Vitest / Playwright).
 
 **Interfaces:**
