@@ -20,8 +20,6 @@ Uso (a partir de `backend/`, exige Postgres e Qdrant no ar):
     .venv/bin/python scripts/ingerir_imagens_corpus.py
 """
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import hashlib

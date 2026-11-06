@@ -8,8 +8,6 @@ Ver `docs/ARCHITECTURE.md` (decisão de 2026-10-17) e `docs/EVALUATION.md`
 Seção 2.1 (Etapa 3).
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 from typing import Any

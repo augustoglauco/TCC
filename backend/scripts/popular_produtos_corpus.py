@@ -24,8 +24,6 @@ Uso (a partir de `backend/`, exige Postgres no ar):
     .venv/bin/python scripts/popular_produtos_corpus.py
 """
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import hashlib

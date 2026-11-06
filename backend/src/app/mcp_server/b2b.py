@@ -36,8 +36,6 @@ SDK: `mcp` (Python SDK oficial), interface `mcp.server.mcpserver.MCPServer`
 para `MCPServer` (ver `pyproject.toml`, `mcp>=2.0`).
 """
 
-from __future__ import annotations
-
 import base64
 import binascii
 import functools

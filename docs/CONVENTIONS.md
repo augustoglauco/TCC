@@ -369,7 +369,11 @@ Referências no git:
 - `e1e243f`: merge da migração no `master`.
 
 Commits posteriores podem depender do Python 3.14; depois de reverter,
-rode os testes antes de subir os serviços.
+rode os testes antes de subir os serviços. Entre eles, a remoção dos
+quatro `from __future__ import annotations` que restavam (`rag/chunking.py`,
+`mcp_server/b2b.py` e dois scripts): no 3.14 as anotações já são avaliadas
+sob demanda (PEP 649), então não use o import nem aspas em referências
+adiante; genéricos novos usam a sintaxe PEP 695 (`def f[T](...)`, `type X = ...`).
 
 **Opção A — `git revert` (recomendada, mantém o histórico):**
 
