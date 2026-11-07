@@ -78,6 +78,29 @@ def test_validate_readonly_sql_enforces_limit():
     assert "LIMIT 50" in cleaned
 
 
+@pytest.mark.parametrize("sql", ["", "   \n"])
+def test_validate_readonly_sql_blocks_consulta_vazia(sql):
+    with pytest.raises(SQLSecurityError, match="vazia"):
+        validate_readonly_sql(sql)
+
+
+def test_validate_readonly_sql_remove_ponto_e_virgula_final():
+    cleaned = validate_readonly_sql("SELECT nome FROM produtos LIMIT 5 ;")
+    assert ";" not in cleaned
+    assert cleaned.endswith("LIMIT 5")
+
+
+def test_validate_readonly_sql_reduz_limit_acima_de_50():
+    cleaned = validate_readonly_sql("SELECT nome FROM produtos LIMIT 500")
+    assert cleaned.endswith("LIMIT 50")
+    assert "500" not in cleaned
+
+
+def test_validate_readonly_sql_mantem_limit_ate_50():
+    cleaned = validate_readonly_sql("SELECT nome FROM produtos LIMIT 50")
+    assert cleaned == "SELECT nome FROM produtos LIMIT 50"
+
+
 @pytest.mark.asyncio
 async def test_get_catalog_schema_prompt(db_session):
     # Decisão de 2026-10-06 (docs/ARCHITECTURE.md §5): o esquema deixou de

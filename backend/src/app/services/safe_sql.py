@@ -76,6 +76,26 @@ def _validar_tabelas_permitidas(cleaned: str) -> None:
         )
 
 
+def _bloquear_padroes_perigosos(cleaned: str) -> None:
+    """Rejeita palavras-chave de escrita/DDL/funções de sistema e comentários."""
+    for pattern in BLOCKED_PATTERNS:
+        match = re.search(pattern, cleaned, re.IGNORECASE)
+        if match:
+            raise SQLSecurityError(
+                f"Comando não permitido: instrução perigosa detectada ({match.group(0)})."
+            )
+
+
+def _limitar_a_50_registros(cleaned: str) -> str:
+    """Garante limite máximo de 50 registros."""
+    limit_match = re.search(r"\blimit\s+(\d+)\b", cleaned, re.IGNORECASE)
+    if not limit_match:
+        return f"{cleaned}\nLIMIT 50"
+    if int(limit_match.group(1)) > 50:
+        return re.sub(r"\blimit\s+\d+\b", "LIMIT 50", cleaned, flags=re.IGNORECASE)
+    return cleaned
+
+
 def validate_readonly_sql(sql: str) -> str:
     """Valida se a instrução SQL é estritamente de leitura (SELECT), sem injeção,
     sem múltiplos comandos e com limitação de registros.
@@ -97,26 +117,9 @@ def validate_readonly_sql(sql: str) -> str:
     if not re.match(r"^(select|with)\b", cleaned, re.IGNORECASE):
         raise SQLSecurityError("Comando não permitido: a consulta deve iniciar com SELECT.")
 
-    # Verifica palavras-chave perigosas de escrita/DDL/funções de sistema
-    for pattern in BLOCKED_PATTERNS:
-        match = re.search(pattern, cleaned, re.IGNORECASE)
-        if match:
-            raise SQLSecurityError(
-                f"Comando não permitido: instrução perigosa detectada ({match.group(0)})."
-            )
-
+    _bloquear_padroes_perigosos(cleaned)
     _validar_tabelas_permitidas(cleaned)
-
-    # Garante limite máximo de 50 registros
-    limit_match = re.search(r"\blimit\s+(\d+)\b", cleaned, re.IGNORECASE)
-    if limit_match:
-        val = int(limit_match.group(1))
-        if val > 50:
-            cleaned = re.sub(r"\blimit\s+\d+\b", "LIMIT 50", cleaned, flags=re.IGNORECASE)
-    else:
-        cleaned = f"{cleaned}\nLIMIT 50"
-
-    return cleaned
+    return _limitar_a_50_registros(cleaned)
 
 
 async def execute_readonly_sql(session: AsyncSession, sql: str) -> list[dict[str, Any]]:
