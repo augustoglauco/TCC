@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.admin_tools.handler import processar_pedido_admin
 from app.background_tasks import spawn_background_task
-from app.db.models import Agendamento, Cliente, RagCollection, RagDocument
+from app.db.models import Agendamento, Cliente, Pedido, RagCollection, RagDocument
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import (
     CardAgendamento,
@@ -964,6 +964,21 @@ async def _extrair_slots_agendamento(
         raise LocalBackendIndisponivelError(str(exc)) from exc
 
 
+async def _nome_do_cadastro(
+    db_sessionmaker: async_sessionmaker[AsyncSession], user_email: str
+) -> str | None:
+    """Nome do cliente em `clientes` pelo e-mail; falha do banco devolve None."""
+    try:
+        async with db_sessionmaker() as session:
+            return await session.scalar(select(Cliente.nome).where(Cliente.email == user_email))
+    except Exception as exc:  # fronteira de isolamento
+        logger.warning(
+            "cadastro_cliente_indisponivel",
+            extra={"router": {"event": "cadastro_cliente_indisponivel", "erro": str(exc)}},
+        )
+        return None
+
+
 async def _preencher_slots_do_cadastro(
     slots: BookingSlots,
     user_email: str | None,
@@ -987,16 +1002,7 @@ async def _preencher_slots_do_cadastro(
     if slots.email is None:
         atualizacoes["email"] = user_email
     if usuario_autenticado and slots.nome is None and db_sessionmaker is not None:
-        try:
-            async with db_sessionmaker() as session:
-                nome = await session.scalar(select(Cliente.nome).where(Cliente.email == user_email))
-        except Exception as exc:  # fronteira de isolamento
-            logger.warning(
-                "cadastro_cliente_indisponivel",
-                extra={"router": {"event": "cadastro_cliente_indisponivel", "erro": str(exc)}},
-            )
-            nome = None
-        if nome:
+        if nome := await _nome_do_cadastro(db_sessionmaker, user_email):
             atualizacoes["nome"] = nome
     return slots.model_copy(update=atualizacoes) if atualizacoes else slots
 
@@ -1384,6 +1390,34 @@ def _logar_falha_comprovante(conversation_id: str, exc: Exception) -> None:
     )
 
 
+async def _converter_reserva_em_venda(
+    session: AsyncSession,
+    pedido: Pedido,
+    message: str,
+    recursos: _RecursosChat,
+    comprovante_bytes: bytes | None,
+    comprovante_filename: str | None,
+) -> tuple[bool, str, Any]:
+    """Valida o comprovante e converte a reserva em venda; devolve (sucesso, texto, parecer)."""
+    from app.router.sales_catalog import processar_conversao_comprovante
+
+    local_client = recursos.local_client
+    external_client = recursos.external_client
+    llm_to_use = local_client if local_client is not None else external_client
+    return await processar_conversao_comprovante(
+        session=session,
+        pedido=pedido,
+        texto_comprovante=message,
+        llm_client=llm_to_use,
+        comprovante_bytes=comprovante_bytes,
+        nome_arquivo=comprovante_filename,
+        vision_client=external_client,
+        local_vision_client=local_client,
+        origem="chat",
+        llm_ambiente="interno" if llm_to_use is local_client else "externo",
+    )
+
+
 async def _handle_comprovante(
     message: str,
     conversation_id: str,
@@ -1398,19 +1432,15 @@ async def _handle_comprovante(
         buscar_reserva_ativa,
         detectar_intencao_comprovante,
         escolher_reserva_pelo_valor,
-        processar_conversao_comprovante,
     )
 
     db_sessionmaker = recursos.db_sessionmaker
     if not detectar_intencao_comprovante(message) or not db_sessionmaker:
         return
 
-    local_client = recursos.local_client
-    external_client = recursos.external_client
     _decision_base = _decisao_base_comprovante(recursos.intent_router_provider)
     try:
         pedido_uuid = _extrair_pedido_uuid(message)
-        llm_to_use = local_client if local_client is not None else external_client
 
         async with db_sessionmaker() as session:
             pedido = await buscar_reserva_ativa(
@@ -1427,17 +1457,8 @@ async def _handle_comprovante(
                 pedido = await escolher_reserva_pelo_valor(
                     session, pedido, message, conversation_id, user_email
                 )
-            sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
-                session=session,
-                pedido=pedido,
-                texto_comprovante=message,
-                llm_client=llm_to_use,
-                comprovante_bytes=comprovante_bytes,
-                nome_arquivo=comprovante_filename,
-                vision_client=external_client,
-                local_vision_client=local_client,
-                origem="chat",
-                llm_ambiente="interno" if llm_to_use is local_client else "externo",
+            _, texto_resp, parecer_res = await _converter_reserva_em_venda(
+                session, pedido, message, recursos, comprovante_bytes, comprovante_filename
             )
         yield TokenEvent(text=texto_resp)
         yield RouterDecision(
@@ -1570,6 +1591,43 @@ def _decidir_backend(r: _RagResult, classification: Any, dados_cliente: str | No
         r.motivo = "complexidade_alta"
 
 
+async def _tokens_filtrados(
+    client: LLMClient, prompt: str
+) -> AsyncIterator[TokenEvent | LLMStreamChunk]:
+    """Yields TokenEvent já sem citações `[Fonte:]`; o yield final é o chunk done."""
+    chunk_final: LLMStreamChunk | None = None
+    filtro = FiltroCitacaoFonte()
+    async for chunk in client.generate_stream(prompt):
+        if chunk.text and (texto := filtro.feed(chunk.text)):
+            yield TokenEvent(text=texto)
+        if chunk.done:
+            chunk_final = chunk
+    if resto := filtro.flush():
+        yield TokenEvent(text=resto)
+    if chunk_final is None:
+        raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
+    yield chunk_final
+
+
+def _backend_indisponivel(exc: Exception, backend_escolhido: str, domain: str) -> Exception:
+    """Loga a falha de geração e devolve o erro de domínio do backend escolhido."""
+    logger.error(
+        "backend_indisponivel",
+        extra={
+            "router": {
+                "event": "backend_indisponivel",
+                "backend": backend_escolhido,
+                "domain": domain,
+                "etapa": "geracao",
+                "erro": str(exc),
+            }
+        },
+    )
+    if backend_escolhido == "local":
+        return LocalBackendIndisponivelError(str(exc))
+    return ExternalBackendIndisponivelError(str(exc))
+
+
 async def _gerar_stream_llm(
     prompt: str,
     client: LLMClient,
@@ -1580,34 +1638,10 @@ async def _gerar_stream_llm(
     try:
         if not await client.is_model_ready():
             yield StatusEvent(status="carregando_modelo")
-        chunk_final: LLMStreamChunk | None = None
-        filtro = FiltroCitacaoFonte()
-        async for chunk in client.generate_stream(prompt):
-            if chunk.text and (texto := filtro.feed(chunk.text)):
-                yield TokenEvent(text=texto)
-            if chunk.done:
-                chunk_final = chunk
-        if resto := filtro.flush():
-            yield TokenEvent(text=resto)
-        if chunk_final is None:
-            raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
-        yield chunk_final
+        async for evento in _tokens_filtrados(client, prompt):
+            yield evento
     except Exception as exc:  # fronteira de isolamento
-        logger.error(
-            "backend_indisponivel",
-            extra={
-                "router": {
-                    "event": "backend_indisponivel",
-                    "backend": backend_escolhido,
-                    "domain": domain,
-                    "etapa": "geracao",
-                    "erro": str(exc),
-                }
-            },
-        )
-        if backend_escolhido == "local":
-            raise LocalBackendIndisponivelError(str(exc)) from exc
-        raise ExternalBackendIndisponivelError(str(exc)) from exc
+        raise _backend_indisponivel(exc, backend_escolhido, domain) from exc
 
 
 def _calcular_tps(chunk: LLMStreamChunk) -> float | None:

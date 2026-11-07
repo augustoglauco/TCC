@@ -334,6 +334,20 @@ async def test_slots_do_agendamento_sem_email_ou_com_banco_fora_nao_quebram():
     ).email == "a@b.com"
 
 
+async def test_slots_do_agendamento_mantem_email_quando_consulta_do_cadastro_falha():
+    class _SessaoQuebrada:
+        async def __aenter__(self):
+            raise RuntimeError("banco fora do ar")
+
+        async def __aexit__(self, *exc_info) -> None:
+            return None
+
+    slots = await _preencher_slots_do_cadastro(BookingSlots(), "a@b.com", True, _SessaoQuebrada)
+
+    assert slots.email == "a@b.com"
+    assert slots.nome is None
+
+
 async def test_agendamento_logado_nao_pede_nome_nem_email(cadastro_factory):
     local_client = _FakeLLMClient(
         response=LLMResponse(
