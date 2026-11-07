@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { fetchUsers } from "@/lib/api/auth";
 import { User } from "@/lib/types/auth";
@@ -14,19 +13,36 @@ import {
 } from "@/lib/api/parceirosB2b";
 import { ChaveB2bDialog } from "@/components/admin/ChaveB2bDialog";
 
-export default function AdminUsuariosPage() {
-  const currentUser = useAuthStore((state) => state.user);
-  const token = useAuthStore((state) => state.token);
+import {
+  AcessoRestrito,
+  FiltrosUsuarios,
+  MetricasUsuarios,
+  UsuariosCabecalho,
+  UsuariosTabela,
+  UsuariosVazio,
+  type AcoesChave,
+} from "@/components/admin/UsuariosPainel";
+
+function filtrarUsuarios(users: User[], termo: string, perfilFiltro: string): User[] {
+  const t = termo.toLowerCase();
+  return users.filter((u) => {
+    const matchTermo = u.nome.toLowerCase().includes(t) || u.email.toLowerCase().includes(t);
+    const matchPerfil = perfilFiltro === "todos" || u.perfil.toLowerCase() === perfilFiltro;
+    return matchTermo && matchPerfil;
+  });
+}
+
+function mensagemErro(err: unknown, padrao: string): string {
+  return err instanceof Error ? err.message : padrao;
+}
+
+function useUsuariosAdmin(token: string | null, isCurrentAdmin: boolean) {
   const [chaves, setChaves] = useState<Record<number, ChaveParceiroAtiva>>({});
   const [chaveGerada, setChaveGerada] = useState<ChaveParceiroGerada | null>(null);
   const [chaveEmAndamento, setChaveEmAndamento] = useState<number | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [termo, setTermo] = useState("");
-  const [perfilFiltro, setPerfilFiltro] = useState<string>("todos");
-
-  const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
 
   // Nao toca estado antes do primeiro `await`: este loader roda a partir de um
   // efeito, onde setState sincrono dispara render em cascata
@@ -43,7 +59,7 @@ export default function AdminUsuariosPage() {
       setChaves(Object.fromEntries(ativas.map((c) => [c.cliente_id, c])));
       setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar usuários.");
+      setError(mensagemErro(err, "Erro ao carregar usuários."));
     } finally {
       setLoading(false);
     }
@@ -57,7 +73,7 @@ export default function AdminUsuariosPage() {
       setError(null);
       await carregarUsuarios();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao gerar a chave B2B.");
+      setError(mensagemErro(err, "Erro ao gerar a chave B2B."));
     } finally {
       setChaveEmAndamento(null);
     }
@@ -75,7 +91,7 @@ export default function AdminUsuariosPage() {
       setError(null);
       await carregarUsuarios();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao revogar a chave B2B.");
+      setError(mensagemErro(err, "Erro ao revogar a chave B2B."));
     } finally {
       setChaveEmAndamento(null);
     }
@@ -90,130 +106,41 @@ export default function AdminUsuariosPage() {
       void carregarUsuarios();
     }
   }, [isCurrentAdmin]);
+  const acoes: AcoesChave = {
+    emAndamento: chaveEmAndamento,
+    onGerar: gerarChave,
+    onRevogar: revogarChave,
+  };
 
-  if (!currentUser || !isCurrentAdmin) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-6">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 text-3xl font-bold shadow-xs border border-rose-200">
-          🔒
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Acesso Restrito ao Administrador</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Apenas usuários com perfil <strong>Administrador (Admin)</strong> têm permissão para
-            acessar a gestão de contas e usuários.
-          </p>
-        </div>
+  return { users, chaves, loading, error, chaveGerada, setChaveGerada, acoes };
+}
 
-        <div className="flex flex-col gap-3 pt-2">
-          <Link
-            href="/conta/login"
-            className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-bold text-white shadow-xs hover:bg-purple-700 transition-colors"
-          >
-            Entrar como Administrador &rarr;
-          </Link>
-          <Link
-            href="/"
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            Voltar ao Início
-          </Link>
-        </div>
-      </div>
-    );
-  }
+export default function AdminUsuariosPage() {
+  const currentUser = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const [termo, setTermo] = useState("");
+  const [perfilFiltro, setPerfilFiltro] = useState<string>("todos");
 
-  // Filtragem local
-  const usuariosFiltrados = users.filter((u) => {
-    const matchTermo =
-      u.nome.toLowerCase().includes(termo.toLowerCase()) ||
-      u.email.toLowerCase().includes(termo.toLowerCase());
-    const matchPerfil =
-      perfilFiltro === "todos" || u.perfil.toLowerCase() === perfilFiltro.toLowerCase();
-    return matchTermo && matchPerfil;
-  });
+  const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
+  const { users, chaves, loading, error, chaveGerada, setChaveGerada, acoes } = useUsuariosAdmin(
+    token,
+    isCurrentAdmin,
+  );
 
-  const totalUsuarios = users.length;
-  const totalAdmins = users.filter((u) => u.perfil.toLowerCase() === "admin").length;
-  const totalClientes = users.filter((u) => u.perfil.toLowerCase() !== "admin").length;
+  if (!currentUser || !isCurrentAdmin) return <AcessoRestrito />;
+
+  const usuariosFiltrados = filtrarUsuarios(users, termo, perfilFiltro.toLowerCase());
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10 space-y-6">
-      {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Gerenciamento de Usuários
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            Consulte usuários cadastrados, atribua perfis comerciais e crie novos administradores ou
-            clientes.
-          </p>
-        </div>
-
-        {/* Botão de Ação */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/conta/cadastro"
-            className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition-colors cursor-pointer"
-          >
-            <span>+</span>
-            <span>Novo Usuário / Admin</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 block">
-            Total de Usuários
-          </span>
-          <span className="mt-1 text-2xl font-bold text-slate-900 block">{totalUsuarios}</span>
-        </div>
-
-        <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 block">
-            Administradores (Admin)
-          </span>
-          <span className="mt-1 text-2xl font-bold text-purple-900 block">{totalAdmins}</span>
-        </div>
-
-        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-700 block">
-            Clientes / Leads
-          </span>
-          <span className="mt-1 text-2xl font-bold text-blue-900 block">{totalClientes}</span>
-        </div>
-      </div>
-
-      {/* Barra de Busca e Filtros */}
-      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            🔍
-          </span>
-          <input
-            type="text"
-            value={termo}
-            onChange={(e) => setTermo(e.target.value)}
-            placeholder="Buscar por nome ou e-mail..."
-            className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-purple-600 focus:outline-hidden"
-          />
-        </div>
-
-        <select
-          value={perfilFiltro}
-          onChange={(e) => setPerfilFiltro(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-purple-600 focus:outline-hidden"
-        >
-          <option value="todos">Todos os Perfis</option>
-          <option value="admin">Administrador (Admin)</option>
-          <option value="cliente">Cliente (Recorrente)</option>
-          <option value="esporadico">Esporádico</option>
-          <option value="lead">Lead</option>
-        </select>
-      </div>
+      <UsuariosCabecalho />
+      <MetricasUsuarios users={users} />
+      <FiltrosUsuarios
+        termo={termo}
+        onTermo={setTermo}
+        perfil={perfilFiltro}
+        onPerfil={setPerfilFiltro}
+      />
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
@@ -221,116 +148,12 @@ export default function AdminUsuariosPage() {
         </div>
       )}
 
-      {/* Tabela de Usuários */}
       {loading ? (
         <div className="py-12 text-center text-xs text-slate-500">Carregando usuários...</div>
       ) : usuariosFiltrados.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center space-y-2">
-          <div className="text-3xl">👥</div>
-          <h3 className="text-sm font-bold text-slate-800">Nenhum usuário encontrado</h3>
-          <p className="text-xs text-slate-500">
-            Tente ajustar os termos de busca ou filtro de perfil.
-          </p>
-        </div>
+        <UsuariosVazio />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">Nome do Usuário</th>
-                <th className="px-4 py-3">Perfil Comercial</th>
-                <th className="px-4 py-3">Origem / Motivo</th>
-                <th className="px-4 py-3">Chave B2B (MCP)</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {usuariosFiltrados.map((u) => {
-                const isUserAdmin = u.perfil.toLowerCase() === "admin";
-                return (
-                  <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-slate-400">#{u.id}</td>
-                    <td className="px-4 py-3.5 font-bold text-slate-900">
-                      <span title={u.email} className="cursor-help">
-                        {u.nome}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
-                          isUserAdmin
-                            ? "bg-purple-50 text-purple-700 border-purple-200"
-                            : u.perfil.toLowerCase() === "cliente"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : u.perfil.toLowerCase() === "esporadico"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}
-                      >
-                        {isUserAdmin ? "⚙️ Admin" : `👤 ${u.perfil}`}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-500 text-[11px]">
-                      {u.perfil_motivo || "Cadastro direto no sistema"}
-                    </td>
-                    <td className="px-4 py-3.5 text-[11px]">
-                      {isUserAdmin || u.id === 0 ? (
-                        <span className="text-slate-400">-</span>
-                      ) : (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {chaves[u.id] ? (
-                            <>
-                              <span
-                                className="rounded bg-emerald-50 px-2 py-0.5 font-mono text-emerald-700 border border-emerald-200"
-                                title={`Criada em ${new Date(chaves[u.id].criada_em).toLocaleString("pt-BR")}`}
-                              >
-                                {chaves[u.id].prefixo}…
-                              </span>
-                              <button
-                                type="button"
-                                disabled={chaveEmAndamento === u.id}
-                                onClick={() => gerarChave(u.id, true)}
-                                className="font-semibold text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
-                              >
-                                Gerar nova
-                              </button>
-                              <button
-                                type="button"
-                                disabled={chaveEmAndamento === u.id}
-                                onClick={() => revogarChave(u.id)}
-                                className="font-semibold text-rose-600 hover:text-rose-800 underline disabled:opacity-50"
-                              >
-                                Revogar
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={chaveEmAndamento === u.id}
-                              onClick={() => gerarChave(u.id, false)}
-                              className="font-semibold text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
-                            >
-                              Gerar chave B2B
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <Link
-                        href={`/pedidos/historico?email=${encodeURIComponent(u.email)}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 underline"
-                      >
-                        <span>Ver Pedidos</span>
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <UsuariosTabela users={usuariosFiltrados} chaves={chaves} acoes={acoes} />
       )}
       {chaveGerada && <ChaveB2bDialog chave={chaveGerada} onFechar={() => setChaveGerada(null)} />}
     </div>
