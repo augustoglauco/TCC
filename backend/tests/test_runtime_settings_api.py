@@ -563,3 +563,63 @@ async def test_persistencia_de_runtime_settings_no_banco():
         assert stored["local_llm_temperature"] == 0.35
 
     await engine.dispose()
+
+
+async def test_get_sobrevive_a_falha_do_status_do_modelo_local(db_session, admin_headers):
+    app, local_client, _, _ = _build_default_app(db_session)
+
+    async def _quebrado() -> dict | None:
+        raise RuntimeError("ollama fora do ar")
+
+    local_client.get_loaded_status = _quebrado
+
+    response = TestClient(app).get("/api/admin/runtime-settings", headers=admin_headers)
+
+    assert response.status_code == 200
+    assert response.json()["local_model_loaded"] is False
+    assert response.json()["local_model_vram_bytes"] is None
+
+
+async def test_put_keep_alive_mantem_ajuste_quando_ollama_falha(db_session, admin_headers):
+    app, local_client, _, _ = _build_default_app(db_session)
+
+    async def _quebrado() -> bool:
+        raise RuntimeError("ollama fora do ar")
+
+    local_client.preload = _quebrado
+
+    response = TestClient(app).put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_keep_alive": "30m"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert local_client.keep_alive == "30m"
+
+
+async def test_put_mantem_ajuste_quando_persistencia_no_banco_falha(db_session, admin_headers):
+    class _SessaoQuebrada:
+        async def __aenter__(self):
+            raise RuntimeError("banco fora do ar")
+
+        async def __aexit__(self, *exc_info) -> None:
+            return None
+
+    local_client = _FakeLocalClient()
+    app = _build_app(
+        local_client,
+        _FakeExternalClient(timeout_s=30.0),
+        _FakeQdrantClient(search_domain_fallback=False),
+        db_session,
+        db_sessionmaker=_SessaoQuebrada,
+    )
+
+    response = TestClient(app).put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_temperature": 0.2},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert local_client.temperature == 0.2

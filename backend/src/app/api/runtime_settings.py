@@ -93,79 +93,85 @@ async def get_runtime_settings(
     return await _build_response(request)
 
 
+# Campo do PUT -> (dono, atributo). Dono: cliente local/externo/Qdrant, `app.state` ou o runtime
+# dos agentes. `local_llm_keep_alive` também é sincronizado com o Ollama (ver o PUT).
+_DESTINOS: dict[str, tuple[str, str]] = {
+    "local_llm_temperature": ("local", "temperature"),
+    "local_llm_num_ctx": ("local", "num_ctx"),
+    "local_llm_top_p": ("local", "top_p"),
+    "local_llm_top_k": ("local", "top_k"),
+    "local_llm_repeat_penalty": ("local", "repeat_penalty"),
+    "local_llm_seed": ("local", "seed"),
+    "local_llm_timeout_s": ("local", "timeout_s"),
+    "local_llm_keep_alive": ("local", "keep_alive"),
+    "external_llm_timeout_s": ("external", "timeout_s"),
+    "external_model_name": ("external", "model"),
+    "external_vision_model_name": ("external", "vision_model"),
+    "rag_search_domain_fallback": ("qdrant", "search_domain_fallback"),
+    "rag_top_k": ("state", "rag_top_k"),
+    "rag_score_threshold": ("state", "rag_score_threshold"),
+    "crawler_max_pages_default": ("state", "crawler_max_pages_default"),
+    "image_internal_confidence": ("state", "image_internal_confidence"),
+    "image_external_confidence": ("state", "image_external_confidence"),
+    "intent_router_provider": ("state", "intent_router_provider"),
+    "tone_monitor_enabled": ("state", "tone_monitor_enabled"),
+    "tone_monitor_provider": ("state", "tone_monitor_provider"),
+    "local_llm_warmup_on_startup": ("state", "local_llm_warmup_on_startup"),
+    "estoque_agent_mode": ("agent", "estoque_modo"),
+    "estoque_agent_llm": ("agent", "estoque_llm"),
+}
+
+
+def _aplicar_campos(request: Request, campos: dict) -> None:
+    local_client, external_client, qdrant_client = _get_clients(request)
+    donos = {
+        "local": local_client,
+        "external": external_client,
+        "qdrant": qdrant_client,
+        "state": request.app.state,
+        "agent": agent_runtime,
+    }
+    for campo, valor in campos.items():
+        dono, atributo = _DESTINOS[campo]
+        setattr(donos[dono], atributo, valor)
+
+
+async def _sincronizar_keep_alive(local_client: OllamaClient, keep_alive: object) -> None:
+    if not (hasattr(local_client, "preload") and inspect.iscoroutinefunction(local_client.preload)):
+        return
+    try:
+        if str(keep_alive) == "0":
+            await local_client.unload()
+        else:
+            await local_client.preload()
+    except Exception as exc:  # best-effort: o ajuste já valeu em memória; falha do Ollama só loga
+        logger.warning("Falha ao sincronizar keep_alive no Ollama: %s", exc)
+
+
+async def _persistir_campos(request: Request, campos: dict) -> None:
+    session_factory = getattr(request.app.state, "db_sessionmaker", None)
+    if session_factory is None or not campos:
+        return
+    try:
+        async with session_factory() as session:
+            await save_multiple_app_settings(session, campos)
+    except Exception as exc:  # best-effort: o ajuste já valeu em memória; falha do banco só loga
+        logger.warning("Falha ao persistir runtime settings no banco: %s", exc)
+
+
 @router.put("", response_model=RuntimeSettingsResponse)
 async def update_runtime_settings(
     request: Request,
     body: RuntimeSettingsUpdateRequest,
     _: None = Depends(require_admin),
 ) -> RuntimeSettingsResponse:
-    local_client, external_client, qdrant_client = _get_clients(request)
-
     campos = body.model_dump(exclude_unset=True)
 
-    if "local_llm_temperature" in campos:
-        local_client.temperature = campos["local_llm_temperature"]
-    if "local_llm_num_ctx" in campos:
-        local_client.num_ctx = campos["local_llm_num_ctx"]
-    if "local_llm_top_p" in campos:
-        local_client.top_p = campos["local_llm_top_p"]
-    if "local_llm_top_k" in campos:
-        local_client.top_k = campos["local_llm_top_k"]
-    if "local_llm_repeat_penalty" in campos:
-        local_client.repeat_penalty = campos["local_llm_repeat_penalty"]
-    if "local_llm_seed" in campos:
-        local_client.seed = campos["local_llm_seed"]
-    if "local_llm_timeout_s" in campos:
-        local_client.timeout_s = campos["local_llm_timeout_s"]
-    if "external_llm_timeout_s" in campos:
-        external_client.timeout_s = campos["external_llm_timeout_s"]
-    if "rag_top_k" in campos:
-        request.app.state.rag_top_k = campos["rag_top_k"]
-    if "rag_score_threshold" in campos:
-        request.app.state.rag_score_threshold = campos["rag_score_threshold"]
-    if "rag_search_domain_fallback" in campos:
-        qdrant_client.search_domain_fallback = campos["rag_search_domain_fallback"]
-    if "crawler_max_pages_default" in campos:
-        request.app.state.crawler_max_pages_default = campos["crawler_max_pages_default"]
-    if "external_model_name" in campos:
-        external_client.model = campos["external_model_name"]
-    if "external_vision_model_name" in campos:
-        external_client.vision_model = campos["external_vision_model_name"]
-    if "image_internal_confidence" in campos:
-        request.app.state.image_internal_confidence = campos["image_internal_confidence"]
-    if "image_external_confidence" in campos:
-        request.app.state.image_external_confidence = campos["image_external_confidence"]
-    if "intent_router_provider" in campos:
-        request.app.state.intent_router_provider = campos["intent_router_provider"]
-    if "tone_monitor_enabled" in campos:
-        request.app.state.tone_monitor_enabled = campos["tone_monitor_enabled"]
-    if "tone_monitor_provider" in campos:
-        request.app.state.tone_monitor_provider = campos["tone_monitor_provider"]
-    if "estoque_agent_mode" in campos:
-        agent_runtime.estoque_modo = campos["estoque_agent_mode"]
-    if "estoque_agent_llm" in campos:
-        agent_runtime.estoque_llm = campos["estoque_agent_llm"]
+    _aplicar_campos(request, campos)
     if "local_llm_keep_alive" in campos:
-        local_client.keep_alive = campos["local_llm_keep_alive"]
-        if hasattr(local_client, "preload") and inspect.iscoroutinefunction(local_client.preload):
-            try:
-                if str(campos["local_llm_keep_alive"]) == "0":
-                    await local_client.unload()
-                else:
-                    await local_client.preload()
-            except Exception as exc:
-                logger.warning("Falha ao sincronizar keep_alive no Ollama: %s", exc)
-    if "local_llm_warmup_on_startup" in campos:
-        request.app.state.local_llm_warmup_on_startup = campos["local_llm_warmup_on_startup"]
-
-    # Persistência no PostgreSQL
-    session_factory = getattr(request.app.state, "db_sessionmaker", None)
-    if session_factory is not None and campos:
-        try:
-            async with session_factory() as session:
-                await save_multiple_app_settings(session, campos)
-        except Exception as exc:
-            logger.warning("Falha ao persistir runtime settings no banco: %s", exc)
+        local_client, _, _ = _get_clients(request)
+        await _sincronizar_keep_alive(local_client, campos["local_llm_keep_alive"])
+    await _persistir_campos(request, campos)
 
     return await _build_response(request)
 
