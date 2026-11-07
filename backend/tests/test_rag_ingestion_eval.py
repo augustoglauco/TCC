@@ -809,3 +809,92 @@ def test_etapa1_imprimir_formata_metricas_e_traco_para_none(etapa1, capsys):
     assert "  Recall@5          : —" in saida
     assert "  nDCG@10           : 0.386" in saida
     assert "  MRR               : —" in saida
+
+
+class _Doc:
+    def __init__(self, source: str, score: float):
+        self.source = source
+        self.score = score
+
+
+class _QdrantFalso:
+    def __init__(self, por_pergunta: dict[str, list[_Doc]]):
+        self.por_pergunta = por_pergunta
+        self.chamadas: list[tuple] = []
+        self.removidas: list[str] = []
+
+    async def search(self, nome, embedder, pergunta, dominio, *, top_k, score_threshold):
+        self.chamadas.append((nome, pergunta, dominio, top_k, score_threshold))
+        return self.por_pergunta[pergunta]
+
+    async def drop_collection(self, nome):
+        self.removidas.append(nome)
+
+
+async def test_etapa1_medir_deduplica_fontes_e_pareia_score(etapa1):
+    from types import SimpleNamespace
+
+    qdrant = _QdrantFalso(
+        {
+            "p1": [_Doc("a.pdf", 0.9), _Doc("a.pdf", 0.8), _Doc("b.md", 0.5)],
+            "n1": [],
+        }
+    )
+    perguntas = [
+        {"id": "q1", "pergunta": "p1", "fontes_aceitas": ["a.md"]},
+        {"id": "q2", "pergunta": "n1", "fontes_aceitas": []},
+    ]
+    args = SimpleNamespace(dominio="suporte", top_k=5, score_threshold=0.25)
+    colecao = SimpleNamespace(name="eval_x")
+
+    resultados, detalhes = await etapa1.medir(colecao, qdrant, None, perguntas, args)
+
+    assert qdrant.chamadas[0] == ("eval_x", "p1", "suporte", 5, 0.25)
+    assert [r.negativa for r in resultados] == [False, True]
+    assert resultados[0].recuperadas == ["a.pdf", "b.md"]
+    assert detalhes[0]["recuperadas"] == [
+        {"fonte": "a.pdf", "score": 0.9},
+        {"fonte": "b.md", "score": 0.5},
+    ]
+    assert detalhes[0]["score_maximo"] == 0.9
+    assert detalhes[0]["acertou"] is True  # a.pdf == a.md (extensão ignorada)
+    assert detalhes[0]["fontes_aceitas"] == ["a.md"]
+    assert detalhes[1]["negativa"] is True
+    assert detalhes[1]["score_maximo"] is None
+    assert detalhes[1]["acertou"] is True  # negativa sem resultado
+
+
+async def test_etapa1_medir_negativa_com_resultado_nao_acerta(etapa1):
+    from types import SimpleNamespace
+
+    qdrant = _QdrantFalso({"n1": [_Doc("a.pdf", 0.4)]})
+    perguntas = [{"id": "q", "pergunta": "n1", "fontes_aceitas": []}]
+    args = SimpleNamespace(dominio="d", top_k=3, score_threshold=0.0)
+
+    _, detalhes = await etapa1.medir(SimpleNamespace(name="c"), qdrant, None, perguntas, args)
+
+    assert detalhes[0]["acertou"] is False
+
+
+async def test_etapa1_apagar_collection_remove_do_qdrant_e_do_postgres(etapa1, monkeypatch):
+    from types import SimpleNamespace
+
+    apagadas = []
+
+    async def _delete(session, collection_id):
+        apagadas.append((session, collection_id))
+
+    class _Sessao:
+        async def __aenter__(self):
+            return "sessao"
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(etapa1, "delete_collection", _delete)
+    qdrant = _QdrantFalso({})
+
+    await etapa1.apagar_collection(SimpleNamespace(name="eval_x", id=7), qdrant, _Sessao)
+
+    assert qdrant.removidas == ["eval_x"]
+    assert apagadas == [("sessao", 7)]
