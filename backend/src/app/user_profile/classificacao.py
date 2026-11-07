@@ -248,6 +248,65 @@ async def _linhas_pedidos(
     return linhas
 
 
+async def _compras_do_cliente(
+    session: AsyncSession, cliente: Cliente | None
+) -> list[tuple[ClienteCompra, str | None]]:
+    if cliente is None:
+        return []
+    res_compras = await session.execute(
+        select(ClienteCompra, Produto.nome)
+        .outerjoin(Produto, ClienteCompra.produto_id == Produto.id)
+        .where(ClienteCompra.cliente_id == cliente.id)
+        .order_by(ClienteCompra.comprado_em.desc())
+    )
+    return list(res_compras.all())
+
+
+async def _pedidos_do_usuario(session: AsyncSession, email_clean: str) -> list[Pedido]:
+    pedidos_res = await session.execute(
+        select(Pedido)
+        .options(selectinload(Pedido.itens))
+        .where(Pedido.user_email == email_clean)
+        .order_by(Pedido.criado_em.desc())
+    )
+    return list(pedidos_res.scalars().all())
+
+
+async def _classificar_cliente(
+    session: AsyncSession, cliente: Cliente | None, pedidos_usuario: list[Pedido]
+) -> Classificacao:
+    # Mesma definição de "compra" do perfil em todo lugar (histórico + venda
+    # concluída); reserva em aberto não conta (correção de 2026-11-02).
+    datas_compras = (
+        (await datas_compras_por_cliente(session, [cliente]))[cliente.id] if cliente else []
+    ) + [
+        _com_fuso(p.convertido_em or p.criado_em)
+        for p in pedidos_usuario
+        if cliente is None and p.status == "venda_concluida"
+    ]
+    return classificar(
+        datas_compras=datas_compras,
+        tem_email=True,
+        teve_intencao_compra=False,
+        agora=datetime.now(UTC),
+    )
+
+
+def _contexto_visitante(classificacao: Classificacao) -> str:
+    return "\n".join(
+        [
+            "[Perfil do Visitante no Chat (Não Autenticado)]:",
+            f"- Tipo de cliente: {classificacao.perfil} ({classificacao.motivo})",
+            "- Status de autenticação: NÃO AUTENTICADO (visitante anônimo no chat).",
+            "- Regra de segurança e privacidade: O visitante NÃO está autenticado na conta. "
+            "Por proteção de dados, NUNCA revele compras anteriores, pedidos, valores ou "
+            "dados pessoais. Se o visitante perguntar sobre compras feitas, histórico de "
+            "pedidos ou dados da conta, instrua-o educadamente a entrar na conta (fazer "
+            "login) para acessar suas informações.",
+        ]
+    )
+
+
 async def carregar_contexto_cliente(
     session: AsyncSession,
     email: str,
@@ -263,57 +322,15 @@ async def carregar_contexto_cliente(
 
     email_clean = email.strip().lower()
     cliente = await session.scalar(select(Cliente).where(Cliente.email == email_clean))
-
-    rows_compras: list[tuple[ClienteCompra, str | None]] = []
-    if cliente is not None:
-        res_compras = await session.execute(
-            select(ClienteCompra, Produto.nome)
-            .outerjoin(Produto, ClienteCompra.produto_id == Produto.id)
-            .where(ClienteCompra.cliente_id == cliente.id)
-            .order_by(ClienteCompra.comprado_em.desc())
-        )
-        rows_compras = list(res_compras.all())
-
-    pedidos_res = await session.execute(
-        select(Pedido)
-        .options(selectinload(Pedido.itens))
-        .where(Pedido.user_email == email_clean)
-        .order_by(Pedido.criado_em.desc())
-    )
-    pedidos_usuario = list(pedidos_res.scalars().all())
+    rows_compras = await _compras_do_cliente(session, cliente)
+    pedidos_usuario = await _pedidos_do_usuario(session, email_clean)
 
     if cliente is None and not pedidos_usuario:
         return None
 
-    # Mesma definição de "compra" do perfil em todo lugar (histórico + venda
-    # concluída); reserva em aberto não conta (correção de 2026-11-02).
-    datas_compras = (
-        (await datas_compras_por_cliente(session, [cliente]))[cliente.id] if cliente else []
-    ) + [
-        _com_fuso(p.convertido_em or p.criado_em)
-        for p in pedidos_usuario
-        if cliente is None and p.status == "venda_concluida"
-    ]
-    classificacao = classificar(
-        datas_compras=datas_compras if (cliente or pedidos_usuario) else None,
-        tem_email=True,
-        teve_intencao_compra=False,
-        agora=datetime.now(UTC),
-    )
-
+    classificacao = await _classificar_cliente(session, cliente, pedidos_usuario)
     if apenas_tipo_cliente:
-        return "\n".join(
-            [
-                "[Perfil do Visitante no Chat (Não Autenticado)]:",
-                f"- Tipo de cliente: {classificacao.perfil} ({classificacao.motivo})",
-                "- Status de autenticação: NÃO AUTENTICADO (visitante anônimo no chat).",
-                "- Regra de segurança e privacidade: O visitante NÃO está autenticado na conta. "
-                "Por proteção de dados, NUNCA revele compras anteriores, pedidos, valores ou "
-                "dados pessoais. Se o visitante perguntar sobre compras feitas, histórico de "
-                "pedidos ou dados da conta, instrua-o educadamente a entrar na conta (fazer "
-                "login) para acessar suas informações.",
-            ]
-        )
+        return _contexto_visitante(classificacao)
 
     nome_cliente = cliente.nome if cliente else email_clean.split("@")[0].title()
     linhas = [
